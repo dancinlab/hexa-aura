@@ -1,7 +1,7 @@
 #!hexa strict
 // hexa-aura/cli/hexa-aura.hexa — standalone hexa-aura CLI router
 //
-// 11-doc post-aural BCI substrate (HEXA family) router. Spec-first
+// 5-doc post-aural BCI CHIP-SUBSTRATE (HEXA family) router. Spec-first
 // dispatcher: each verb subcmd resolves its spec doc path and prints
 // headline (head -30).
 //
@@ -9,12 +9,20 @@
 // 18개 웨어러블 (AirPods/Vision Pro/Watch/외골격/의수/e-skin/...)을
 // 0개로 수렴. 양쪽 φ=2개, 각 3.6g, RT-SC 나노코일 σ²=144ch/타일.
 //
-// v0.1.0 ships as a thin BUNDLE. 5 of 11 docs are intentionally
+// Scope discipline: hexa-aura is the CHIP + FORM-FACTOR substrate.
+// Cognitive verbs (mind/oracle/telepathy/dream) → hexa-mind (pending).
+// Sensory verbs (ear/speak/empath/olfact)       → hexa-senses (pending).
+// BCI ML stack (hexa-neuro)                     → hexa-mind (pending).
+//
+// v0.1.0 ships as a thin BUNDLE. 2 of 5 docs are intentionally
 // extracted from older canon SHAs (579ab196, ab155706) to recover
 // richer Korean content lost in a canonical-format migration. The
-// remaining 6 are current canon copies. See TODO.md §1.
+// remaining 3 are current canon copies. See TODO.md §1.
 //
 // Cross-link policy (raw#10):
+//   - cognitive verbs              → hexa-mind (pending)
+//   - sensory verbs                → hexa-senses (pending)
+//   - working EEG/BMI pipeline     → hexa-brain (sister)
 //   - decoder model serving        → hexa-codex CLI
 //   - neuromorphic silicon         → hexa-chip CLI
 //   - 5G/6G uplink                 → hexa-grid CLI
@@ -37,18 +45,12 @@ fn hexa_aura_root() -> str {
 
 let HM = hexa_aura_root()
 
-// 11-doc spec registry: verb_name → (subdir, filename) under docs/
+// 5-doc spec registry: verb_name → (subdir, filename) under docs/
 let VERBS = [
     ["neuro",                     "docs", "neuro.md"],
-    ["hexa_neuro",                "docs", "hexa-neuro.md"],
     ["brain_computer_interface",  "docs", "brain-computer-interface.md"],
-    ["hexa_ear",                  "docs", "hexa-ear.md"],
     ["hexa_neuromorphic",         "docs", "hexa-neuromorphic.md"],
     ["l9_field_photon_neuro",     "docs", "l9-field-photon-neuro.md"],
-    ["hexa_mind",                 "docs", "hexa-mind.md"],
-    ["hexa_speak",                "docs", "hexa-speak.md"],
-    ["hexa_dream",                "docs", "hexa-dream.md"],
-    ["hexa_telepathy",            "docs", "hexa-telepathy.md"],
     ["neuroscience",              "docs", "neuroscience.md"],
 ]
 
@@ -85,25 +87,28 @@ fn _print_spec_headline(verb: str, spec_path: str) {
 fn _print_caveats() {
     println("")
     println("--- caveats (raw#10 C3) ---")
-    println("  1. v0.1.0 ships as BUNDLE of 11 canon docs. 5 of 11 are")
+    println("  1. v0.1.0 ships as 5-doc CHIP-SUBSTRATE bundle. 2 of 5 are")
     println("     historically restored from canon@{579ab196, ab155706}")
     println("     to recover richer Korean content (TODO.md §1).")
-    println("  2. decoder model serving  → hexa-codex CLI (do NOT proxy).")
-    println("  3. neuromorphic silicon   → hexa-chip CLI.")
-    println("  4. 5G/6G uplink           → hexa-grid CLI.")
+    println("  2. cognitive verbs (mind/oracle/telepathy/dream) → hexa-mind (pending).")
+    println("  3. sensory verbs (ear/speak/empath/olfact)       → hexa-senses (pending).")
+    println("  4. working EEG/BMI pipeline                      → hexa-brain (sister).")
+    println("  5. decoder model serving / neuromorphic silicon  → hexa-codex / hexa-chip CLI.")
 }
 
 fn cmd_status(a: [str]) {
-    println("hexa-aura " + VERSION + " status — 11-doc post-aural BCI substrate (측두골 클립)")
+    println("hexa-aura " + VERSION + " status — 5-doc post-aural BCI chip substrate (측두골 클립)")
     println("")
-    println("  Tier 1 — 귀뒤 BCI 스택  (neuro · hexa-neuro · brain-computer-interface · hexa-ear)")
-    println("  Tier 2 — 칩 하드웨어    (hexa-neuromorphic · l9-field-photon-neuro)")
-    println("  Tier 3 — 모바일 대체   (hexa-mind · hexa-speak · hexa-dream · hexa-telepathy)")
-    println("  Tier 4 — 배경          (neuroscience)")
+    println("  scope: CHIP + FORM-FACTOR only")
+    println("    neuro                        579ab196 ✦ KR")
+    println("    brain-computer-interface     ab155706 ✦ KR")
+    println("    hexa-neuromorphic            5458b7d1")
+    println("    l9-field-photon-neuro        5458b7d1")
+    println("    neuroscience                 5458b7d1")
     println("")
-    println("  ✦ historical KR restore: neuro · brain-computer-interface · hexa-ear · hexa-speak · hexa-dream")
-    println("  verdict: BUNDLE_FIRST (11/11 docs are canon copies; 5 are historical)")
-    println("  cross-link: serve → hexa-codex · chip → hexa-chip · uplink → hexa-grid")
+    println("  ✦ KR = intentionally extracted from a richer pre-migration historical SHA")
+    println("  verdict: BUNDLE_FIRST (5/5 docs are canon copies; 2 are historical)")
+    println("  cross-link: mind→pending · senses→pending · brain→sister · codex/chip/grid→CLI")
     _print_caveats()
 }
 
@@ -120,7 +125,7 @@ fn cmd_verb(verb: str) {
 }
 
 fn cmd_selftest(a: [str]) {
-    println("hexa-aura selftest — 11-doc presence check")
+    println("hexa-aura selftest — 5-doc presence check")
     println("")
     let mut count = 0
     for row in VERBS {
@@ -134,8 +139,8 @@ fn cmd_selftest(a: [str]) {
         }
     }
     println("")
-    println("docs_present = " + str(count) + " / 11")
-    if count == 11 {
+    println("docs_present = " + str(count) + " / 5")
+    if count == 5 {
         println("__HEXA_AURA_SELFTEST__ PASS")
     } else {
         println("__HEXA_AURA_SELFTEST__ FAIL")
@@ -145,29 +150,32 @@ fn cmd_selftest(a: [str]) {
 
 fn cmd_version() {
     println("hexa-aura " + VERSION)
-    println("standalone n=6 post-aural BCI substrate (HEXA family — bundled from canon@aadcb101 + 2 historical SHAs on 2026-05-10)")
+    println("standalone n=6 post-aural BCI chip substrate (HEXA family — bundled from canon@5458b7d1 + 2 historical SHAs on 2026-05-10)")
     println("license: MIT")
     println("repo:    https://github.com/dancinlab/hexa-aura")
 }
 
 fn cmd_help() {
-    println("hexa-aura " + VERSION + " — standalone post-aural BCI substrate CLI")
+    println("hexa-aura " + VERSION + " — standalone post-aural BCI CHIP-substrate CLI")
     println("")
     println("usage: hexa-aura <subcmd> [flags...]")
     println("")
-    println("verb subcommands (11-doc bundle):")
+    println("verb subcommands (5-doc chip-substrate bundle):")
     for row in VERBS {
         println("  " + row[0])
     }
     println("")
     println("utility:")
-    println("  status          11-doc table + cross-link + caveats")
-    println("  selftest        11-doc presence check")
+    println("  status          5-doc table + cross-link + caveats")
+    println("  selftest        5-doc presence check")
     println("")
     println("global flags: --version, --help, -h")
     println("env:          HEXA_AURA_ROOT (override repo root)")
     println("")
-    println("cross-link (call sibling CLI directly):")
+    println("cross-link (call sibling repo / CLI directly):")
+    println("  cognitive verbs       → hexa-mind  (pending)")
+    println("  sensory verbs         → hexa-senses (pending)")
+    println("  working EEG/BMI       → hexa-brain (sister)")
     println("  decoder model serving → hexa-codex serve")
     println("  neuromorphic silicon  → hexa-chip neuromorphic")
     println("  5G/6G uplink          → hexa-grid v2x")

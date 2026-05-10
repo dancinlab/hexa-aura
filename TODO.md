@@ -1,13 +1,13 @@
 # TODO — hexa-aura
 
-`v0.1.0` ships as a thin bundle of 11 BCI / post-aural canon docs
-(see [README.md](README.md#docs)). This TODO tracks two follow-ups.
+`v0.1.0` ships as a thin 5-doc CHIP-SUBSTRATE bundle (see
+[README.md](README.md#docs)). This TODO tracks three follow-ups.
 
 ---
 
-## §1 Canon restoration (5 historical docs)
+## §1 Canon restoration (2 historical docs)
 
-5 of 11 bundled docs are intentionally extracted from older canon
+2 of 5 bundled docs are intentionally extracted from older canon
 SHAs because a 2026-Q1 canonical-format migration trimmed the bodies
 significantly while modernising the frontmatter:
 
@@ -15,9 +15,6 @@ significantly while modernising the frontmatter:
 | ---------------------------- | ------------: | -------------: | ----------- | -----: |
 | `neuro`                      |           616 |       **1854** | `579ab196`  |  3.0×  |
 | `brain-computer-interface`   |           717 |        **962** | `ab155706`  |  1.3×  |
-| `hexa-ear`                   |           717 |        **856** | `579ab196`  |  1.2×  |
-| `hexa-speak`                 |           787 |        **932** | `ab155706`  |  1.2×  |
-| `hexa-dream`                 |           717 |        **806** | `579ab196`  |  1.1×  |
 
 The richer Korean bodies contain the load-bearing concept material
 (측두골 클립 / 18개 웨어러블 대체 / RT-SC 나노코일 / 25 카테고리 EXACT
@@ -29,7 +26,7 @@ lost that content.
 
 - [ ] **Option A — Hybrid restore**: keep current frontmatter, replace
       `body` with historical Korean body. Preserves canon-harness
-      compatibility AND recovers content. ~5 files × manual merge.
+      compatibility AND recovers content. ~2 files × manual merge.
 - [ ] **Option B — Schema extension**: extend `standalone_seeds.tsv` to
       support `canonical_sha` per row, allowing pre-migration historical
       pinning natively. Bigger change but proper.
@@ -41,25 +38,48 @@ session.
 
 ---
 
-## §2 v1.0.0 — Full 13-verb n=6 HEXA-template author
+## §2 Sister standalones (cognitive / sensory split)
+
+Per [`canon/domains/cognitive/_standalone_repos.md`](https://github.com/dancinlab/canon/blob/main/domains/cognitive/_standalone_repos.md),
+the cognitive and sensory verbs that were briefly bundled into
+`hexa-aura@v0.1.0-pre` (and then removed) belong in two pending
+sibling standalones:
+
+### 🧠 `hexa-mind` (pending — 7 docs)
+
+- [ ] `hexa-mind`
+- [ ] `hexa-neuro` (BCI ML stack)
+- [ ] `hexa-oracle`
+- [ ] `hexa-telepathy`
+- [ ] `mind-upload`
+- [ ] `telepathy`
+- [ ] `superpowers`
+
+### 👁️ `hexa-senses` (pending — 5 docs)
+
+- [ ] `hexa-dream`
+- [ ] `hexa-ear`
+- [ ] `hexa-empath`
+- [ ] `hexa-olfact`
+- [ ] `hexa-speak`
+
+These are owner-pending — separate session.
+
+---
+
+## §3 v1.0.0 — Full chip-substrate n=6 HEXA-template author
 
 Each new verb = a new canon spec doc following the gold-standard n=6
 HEXA template (§WHY / §COMPARE / §REQUIRES / §STRUCT / §FLOW / §EVOLVE /
 §VERIFY with stdlib Python verification, ~450–800 lines).
 
-### Hardware (3)
+### Hardware form-factor (3)
 
 - [ ] `mastoid-clip`         — 측두골 클립 form-factor + bone-conduction anchor
 - [ ] `rt-sc-nanocoil`       — room-temp SC coil (σ²=144ch/tile)
 - [ ] `temporal-cortex-map`  — 측두엽 (auditory/language) topology
 
-### Decoder stack (3)
-
-- [ ] `subvocal-decoder`     — silent-speech motor cortex decoder
-- [ ] `dream-replay`         — REM cortex sampling / replay
-- [ ] `emotion-bridge`       — amygdala/PFC φ=2 bidirectional
-
-### Stimulator stack (3)
+### Stimulator stack (3) — chip-driven cortical injection
 
 - [ ] `auditory-injection`   — A1 cortex direct injection (replaces earbuds)
 - [ ] `visual-injection`     — V1–V6 direct (replaces AR/VR glasses)
@@ -72,23 +92,29 @@ HEXA template (§WHY / §COMPARE / §REQUIRES / §STRUCT / §FLOW / §EVOLVE /
 - [ ] `regulatory-medical`   — FDA / KFDA class III pathway
 - [ ] `surgical-zero`        — no-craniotomy / external-only protocol
 
----
-
-## §3 Cross-link policy (raw#10)
-
-Do NOT re-implement these; call sibling CLI directly:
-
-| concern                         | sibling CLI                |
-| ------------------------------- | -------------------------- |
-| decoder model serving           | `hexa-codex serve`         |
-| neuromorphic silicon            | `hexa-chip neuromorphic`   |
-| 5G/6G uplink                    | `hexa-grid v2x`            |
+(decoder verbs — subvocal-decoder / dream-replay / emotion-bridge —
+are intentionally OUT OF SCOPE here; they belong to `hexa-mind`.)
 
 ---
 
-## §4 Authoring workflow (when v1.0.0 starts)
+## §4 Cross-link policy (raw#10)
 
-1. For each verb, create `canon/domains/cognitive/<verb>/<verb>.md`
+Do NOT re-implement these; call sibling CLI / repo directly:
+
+| concern                                              | sibling                       |
+| ---------------------------------------------------- | ----------------------------- |
+| BCI ML stack / cognitive verbs                       | `hexa-mind` (pending)         |
+| 5-senses verbs                                       | `hexa-senses` (pending)       |
+| working EEG / BMI pipeline                           | `hexa-brain` (sister repo)    |
+| decoder model serving                                | `hexa-codex` CLI              |
+| chip-grade neuromorphic silicon                      | `hexa-chip` CLI               |
+| 5G / 6G uplink                                       | `hexa-grid` CLI               |
+
+---
+
+## §5 Authoring workflow (when v1.0.0 starts)
+
+1. For each verb, create `canon/domains/cognitive-or-life/<verb>/<verb>.md`
    using the gold-standard n=6 HEXA template (450 lines).
 2. Append entry to `canon/tools/standalone_seeds.tsv` with
    `(hexa-aura, ✨, <oneliner>, <canonical>, docs/<verb>.md)`.

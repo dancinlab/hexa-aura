@@ -5,26 +5,32 @@
 # Provenance: bundled from canon/domains/{life,cognitive,compute}/ on 2026-05-10
 #             (sister of hexa-mobility / hexa-matter / hexa-grid).
 #
-# v0.1.0 ships as a thin BUNDLE. 5 of 11 docs are intentionally extracted
-# from older canon SHAs to recover richer Korean content lost in a 2025
-# canonical-format migration (see TODO.md). The remaining 6 are current
-# canon copies.
+# v0.1.0 ships as a thin BUNDLE of 5 chip-substrate docs. 2 of 5 are
+# intentionally extracted from older canon SHAs to recover richer Korean
+# content lost in a 2026-Q1 canonical-format migration (see TODO.md §1).
 #
-# Concept: 측두골 클립 — a behind-the-ear chip that replaces the smartphone
-# (and 18 other wearables) by directly interfacing the temporal-bone-
-# adjacent cortices via RT-SC nano-coils. n=6 BCI substrate.
+# Concept: 측두골(temporal bone) 유양돌기(mastoid) 클립 — a behind-the-ear
+# chip that replaces the smartphone (and 18 other wearables) by directly
+# interfacing the temporal-bone-adjacent cortices via RT-SC nano-coils.
+# n=6 BCI hardware substrate.
+#
+# Scope discipline (v0.1.0): hexa-aura is the CHIP + FORM-FACTOR substrate.
+# Cognitive verbs (mind/dream/telepathy/oracle) live in future hexa-mind.
+# Sensory verbs (ear/speak/empath/olfact) live in future hexa-senses.
+# BCI ML stack (hexa-neuro) lives in future hexa-mind per canon plan
+# (domains/cognitive/_standalone_repos.md).
 
 [package]
 name = "hexa-aura"
 version = "0.1.0"
 entry = "cli/hexa-aura.hexa"
-description = "n=6 post-aural BCI substrate (HEXA family) — 측두골 클립이 스마트폰+18개 웨어러블 대체. neuro · BCI · neuromorphic · mind/speak/dream/telepathy 11-doc bundle."
+description = "n=6 post-aural BCI chip substrate (HEXA family) — 측두골 클립이 스마트폰+18개 웨어러블 대체. neuro · BCI · neuromorphic · neuro-chip-arch · neuroscience 5-doc tight bundle (cognitive verbs → hexa-mind, sensory verbs → hexa-senses)."
 license = "MIT"
 authors = ["박민우 <nerve011235@gmail.com>"]
 repository = "https://github.com/dancinlab/hexa-aura"
 homepage = "https://github.com/dancinlab/hexa-aura"
 readme = "README.md"
-keywords = ["bci", "neuro", "post-aural", "mastoid", "wearable-replacement", "neuromorphic", "telepathy", "subvocal", "hexa-family"]
+keywords = ["bci", "neuro", "post-aural", "mastoid", "wearable-replacement", "neuromorphic", "chip-substrate", "hexa-family"]
 categories = ["bci", "wearable", "spec-substrate"]
 
 [[bin]]
@@ -40,45 +46,44 @@ files = [
 [scripts]
 install = "install.hexa"
 
-# ── Verb manifest (11-doc bundle at v0.1.0) ───────────────
+# ── Verb manifest (5-doc tight chip-substrate bundle) ─────
 verb_parent = "docs"
 [verbs]
 neuro                     = ["neuro"]
-hexa_neuro                = ["hexa-neuro"]
 brain_computer_interface  = ["brain-computer-interface"]
-hexa_ear                  = ["hexa-ear"]
 hexa_neuromorphic         = ["hexa-neuromorphic"]
 l9_field_photon_neuro     = ["l9-field-photon-neuro"]
-hexa_mind                 = ["hexa-mind"]
-hexa_speak                = ["hexa-speak"]
-hexa_dream                = ["hexa-dream"]
-hexa_telepathy            = ["hexa-telepathy"]
 neuroscience              = ["neuroscience"]
 
 # ── Cross-link (sister substrates — invoke their CLIs directly) ──
 # Policy:
-#   - perception ML serving / decoder models   → hexa-codex CLI
-#   - skin-electrode chemistry / membrane      → hexa-skin (via canon → future)
-#   - chip-grade neuromorphic silicon          → hexa-chip CLI
-#   - V2X / 5G/6G uplink                       → hexa-grid CLI
+#   - cognitive verbs (mind/oracle/telepathy/dream/...)  → hexa-mind (future)
+#   - sensory verbs (ear/speak/empath/olfact)            → hexa-senses (future)
+#   - BCI ML stack (hexa-neuro)                          → hexa-mind (future)
+#   - decoder model serving                              → hexa-codex CLI
+#   - neuromorphic silicon (chip-grade)                  → hexa-chip CLI
+#   - 5G/6G uplink                                       → hexa-grid CLI
 [crosslink]
-codex = "dancinlab/hexa-codex (decoder model serving)"
-chip  = "dancinlab/hexa-chip (neuromorphic silicon — call `hexa-chip neuromorphic` directly)"
-grid  = "dancinlab/hexa-grid (5G/6G uplink for cloud sync)"
+codex  = "dancinlab/hexa-codex (decoder model serving)"
+chip   = "dancinlab/hexa-chip (vehicle/automotive-grade silicon — call `hexa-chip neuromorphic` for chip-grade neuro silicon)"
+grid   = "dancinlab/hexa-grid (5G/6G uplink for cloud sync)"
+brain  = "dancinlab/hexa-brain (working EEG/BMI pipeline — sister, not substrate)"
+mind   = "dancinlab/hexa-mind (cognitive: mind/neuro/oracle/telepathy/mind-upload/superpowers — pending)"
+senses = "dancinlab/hexa-senses (5-senses: ear/speak/empath/olfact/dream — pending)"
 
 # ── Closure provenance (raw#10 honest C3) ─────────────────
 [closure]
-verbs_total = 11
-groups_total = 11
+verbs_total = 5
+groups_total = 5
 verbs_wired = 0
-verbs_spec = 11
+verbs_spec = 5
 verdict = "BUNDLE_FIRST"
-extracted_from = "canon/domains/{life,cognitive,compute}/ @ aadcb101 + historical SHAs (5 docs)"
+extracted_from = "canon/domains/{life,cognitive,compute}/ @ 5458b7d1 + 2 historical SHAs"
 
 # ── Scope honesty (raw#10 C3) ─────────────────────────────
 [scope]
-honest_scope = "11-doc bundle. 5 docs (neuro / brain-computer-interface / hexa-ear / hexa-speak / hexa-dream) are intentionally extracted from older canon SHAs (579ab196, ab155706) to recover richer Korean content lost in a canonical-format migration. 6 docs are current canon. v0.1.0 ships as BUNDLE_FIRST; full n=6 HEXA-template integration is TODO."
-not_scope = ["decoder model serving (→ hexa-codex CLI)", "neuromorphic silicon (→ hexa-chip CLI)", "5G/6G uplink (→ hexa-grid CLI)", "in-vivo validation", "regulatory clearance"]
+honest_scope = "5-doc CHIP-SUBSTRATE bundle (neuro / BCI / neuromorphic / neuro-chip-arch / neuroscience). 2 docs (neuro / brain-computer-interface) are intentionally extracted from older canon SHAs (579ab196, ab155706) to recover richer Korean content. Cognitive and sensory verbs are explicitly OUT OF SCOPE — they belong in pending hexa-mind / hexa-senses standalones (canon plan: domains/cognitive/_standalone_repos.md)."
+not_scope = ["cognitive verbs (mind/dream/telepathy/oracle/...) → hexa-mind (pending)", "sensory verbs (ear/speak/empath/olfact) → hexa-senses (pending)", "BCI ML stack (hexa-neuro) → hexa-mind (pending, per canon plan)", "working EEG/BMI pipeline → hexa-brain (sister repo, separate)", "decoder model serving → hexa-codex CLI", "in-vivo validation", "regulatory clearance"]
 
 # ── Cost profile ──────────────────────────────────────────
 [cost]
