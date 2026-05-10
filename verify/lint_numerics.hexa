@@ -57,6 +57,10 @@ let NUMERICS_SCRIPTS = [
     "numerics_coil_parity.hexa",
     "numerics_cortex_parity.hexa",
     "numerics_safety_parity.hexa",
+    "numerics_clip_solver.hexa",
+    "numerics_coil_solver.hexa",
+    "numerics_cortex_solver.hexa",
+    "numerics_safety_solver.hexa",
     "numerics_cross_pillar.hexa",
     "numerics_lattice_arithmetic.hexa",
 ]

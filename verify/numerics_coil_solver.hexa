@@ -1,0 +1,113 @@
+#!hexa strict
+// ──────────────────────────────────────────────────────────────────────────
+// hexa-aura/verify/numerics_coil_solver.hexa — pillar 2 (coil) mini-ODE solver (T2, 2nd stack).
+//
+// @allow-relop-banned-file
+// @allow-bare-exec-file
+// @allow-silent-exit-file
+// @no-lock-needed
+// @resolver-bypass(reason="Pure local numerics; RL-circuit ODE integrator; no doc reads required.")
+//
+// RSC recipe §7.4 priority 6 — mini-ODE solver, the 2nd T2 rung for F-AURA-2.
+// Integrates the RT-SC drive-loop current under a short write pulse inside the
+// τ=4-phase read frame:
+//   L·dI/dt = V(t) − R·I
+// with L = 1 μH (planar μ=1 μm-pitch nano-coil), a ~10 μs write pulse at the
+// top of phase 1, and TWO resistance cases:
+//   case A — ideal SC loop, R = 0  (the enabling claim)
+//   case B — small parasitic R = 50 mΩ in the normal-conductor lead/driver path
+// Forward-Euler, fine step. Read frame ≤ sopfr = 5 ms ⇒ 200 Hz frame rate.
+//
+// PASS = (a) the SC-loop current ramps to ~mA scale during the pulse and HOLDS
+// (R = 0 ⇒ persistent current, no decay); (b) the SC-loop dissipated energy
+// ∫ I²·R dt over the frame is ≈ 0; (c) the parasitic-lead duty-cycle-averaged
+// power (energy/frame × 200 frames/s) is ≪ the 50 mW driver budget the 3.6 g
+// clip thermal envelope allows.  (T2 — F-AURA-2c stays OPEN; this is closed-form
+// internal consistency, not a built tile, and not the RT-SC material claim,
+// which is deferred to hexa-rtsc.)
+//
+// Run:  hexa run verify/numerics_coil_solver.hexa
+// Authority: coil/doc/rt-sc-nanocoil.md (§4 / §5 / §6) + .roadmap.hexa_aura §B.2.
+// FALSIFIERS: F-AURA-2, F-AURA-2c (T2 2nd-stack ODE-solver surface)
+// ──────────────────────────────────────────────────────────────────────────
+
+use "self/runtime/math_pure"
+
+let mut RUN = 0
+let mut FAIL = 0
+fn _check(ok: bool, label: str, detail: str) {
+    RUN = RUN + 1
+    let mark = if ok { "PASS" } else { "FAIL" }
+    if ok == false { FAIL = FAIL + 1 }
+    println("  [" + mark + "] " + label)
+    if detail.len() > 0 { println("         · " + detail) }
+}
+
+// n=6 + circuit params
+let SOPFR = 5.0                       // ms — read-frame budget (τ=4 phases)
+let PULSE_MS = 0.010                  // 10 μs write pulse at the top of phase 1
+let L_H = 1.0e-6                      // 1 μH drive-loop inductance
+let R_SC = 0.0                        // superconducting loop: zero DC resistance
+let R_PAR = 0.05                      // 50 mΩ parasitic in the lead/driver path
+let V_DRIVE = 1.0e-3                  // 1 mV pulse amplitude (ramps to ~mA, not 100s of A)
+let FRAME_RATE = 200.0                // 1/(sopfr ms)
+
+fn v_pulse(t_ms: float) -> float {
+    if t_ms < PULSE_MS { return V_DRIVE }
+    return 0.0
+}
+
+fn run_loop(r_ohm: float) -> [float] {
+    // returns [I_peak, I_end, E_diss_over_frame]
+    let frame_ms = SOPFR
+    let steps = 500000
+    let dt_ms = frame_ms / 500000.0
+    let dt_s = dt_ms / 1000.0
+    let mut i_amp = 0.0
+    let mut t_ms = 0.0
+    let mut k = 0
+    let mut i_peak = 0.0
+    let mut e_diss = 0.0
+    while k < steps {
+        let v = v_pulse(t_ms)
+        let di = (v - r_ohm * i_amp) / L_H * dt_s
+        i_amp = i_amp + di
+        if abs_f(i_amp) > i_peak { i_peak = abs_f(i_amp) }
+        e_diss = e_diss + i_amp * i_amp * r_ohm * dt_s
+        t_ms = t_ms + dt_ms
+        k = k + 1
+    }
+    return [i_peak, i_amp, e_diss]
+}
+
+fn main() {
+    println("========================================================================")
+    println("  hexa-aura · pillar 2 (coil) — RT-SC drive-loop RL ODE solver (T2 2nd stack)")
+    println("========================================================================")
+    println("")
+
+    let a = run_loop(R_SC)
+    let b = run_loop(R_PAR)
+    let i_sc_peak = a[0]
+    let i_sc_end = a[1]
+    let e_diss_sc = a[2]
+    let i_par_peak = b[0]
+    let e_diss_par = b[2]
+
+    _check(i_sc_peak > 0.0 && i_sc_peak < 1.0, "SC drive-loop current ramps under the 10 μs pulse: I_peak = " + str(i_sc_peak) + " A ( ~mA scale )", "L·dI/dt = V, R = 0")
+    let hold_ok = abs_f(i_sc_end - i_sc_peak) < 1.0e-9 + 0.001 * i_sc_peak
+    _check(hold_ok, "R = 0 ⇒ persistent current held after the pulse (I_end ≈ I_peak): I_end = " + str(i_sc_end) + " A", "superconducting loop, no decay over the remaining frame")
+    _check(e_diss_sc < 1.0e-12, "SC-loop dissipated energy over the frame = " + str(e_diss_sc) + " J ≈ 0 (zero loop resistance)", "")
+    let p_par_avg = e_diss_par * FRAME_RATE          // W (energy/frame × 200 frames/s)
+    _check(p_par_avg < 0.050, "parasitic-lead avg power " + str(p_par_avg) + " W < 50 mW driver budget (3.6 g clip thermal cap)", "I_par_peak ≈ " + str(i_par_peak) + " A, 200 Hz read frame")
+    _check(L_H > 0.0 && R_PAR > 0.0, "ODE params consistent: L = " + str(L_H) + " H, R_par = " + str(R_PAR) + " Ω, pulse = " + str(PULSE_MS) + " ms", "")
+
+    println("")
+    println("========================================================================")
+    let pass_n = RUN - FAIL
+    println("  " + str(pass_n) + "/" + str(RUN) + " solver checks passed")
+    if FAIL > 0 { println("__HEXA_AURA_NUMERICS_COIL_SOLVER__ FAIL"); exit(1) }
+    println("  SC drive loop ramps to ~mA then holds (R=0 ⇒ 0 dissipation); parasitic-lead avg power ≪ the 50 mW clip budget.")
+    println("__HEXA_AURA_NUMERICS_COIL_SOLVER__ PASS")
+    exit(0)
+}

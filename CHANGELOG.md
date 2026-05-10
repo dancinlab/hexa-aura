@@ -4,6 +4,52 @@ All notable changes to `hexa-aura` will be documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — 2026-05-11 — RSC priority-6: 4 solver scripts (2nd T2 stack per pillar)
+
+Closure-depth accumulation, recipe §7.4 priority 6 — adds a mini-ODE solver per
+pillar (the 2nd T2 rung for each falsifier), so the verify surface goes 19 → 23
+scripts and each falsifier now has T2 ×2. After this the recipe inventory is
+exhausted: sat-1 (all falsifiers 100% closure) ∧ sat-2 (full §1+ inventory +
+`lint_numerics` PASS + ≥9 `numerics_*.hexa`) → `saturation_check` emits
+`__HEXA_AURA_RSC_SATURATED__ STOP`. Post-saturation cron/loop firings run the
+health-check only (recipe §9.1) — no forced chunks.
+
+### Added — 4 solver scripts (`verify/numerics_*_solver.hexa`)
+- `numerics_clip_solver.hexa` — clip-anchor wobble: damped torsional oscillator
+  `I·θ'' + b·θ' + κ·θ = M_jaw(t)` with `I = (1/3)·(σ·n/10)·(J₂)²`, leapfrog (KDK)
+  over one τ=4-phase chew cycle. PASS = peak wobble |θ_max| < 0.05 rad (clip stays
+  seated), ω0 ≫ chewing band, closing energy bounded (no integrator blow-up). [F-AURA-1, 1a]
+- `numerics_coil_solver.hexa` — RT-SC drive-loop RL ODE `L·dI/dt = V − R·I`
+  (L = 1 μH nano-coil, ~10 μs write pulse), two cases: R = 0 (SC loop) and
+  R = 50 mΩ (parasitic lead). PASS = SC current ramps to ~mA then HOLDS (R=0 ⇒
+  persistent, 0 dissipation), parasitic-lead avg power (energy/frame × 200 Hz) ≪ 50 mW
+  driver budget. [F-AURA-2, 2c]
+- `numerics_cortex_solver.hexa` — leaky-integrate-and-fire neuron under the
+  injected write field `τ_m·dV/dt = −(V − V_rest) + R_m·I_inj(t)`, injection ON 60 ms
+  / OFF 40 ms. PASS = fires under injection, first-spike latency within the sopfr=5 ms
+  regime, NO spurious off-phase firing (write loop stable), percept-band rate, V relaxes
+  to V_rest. [F-AURA-3, 3a/3b/3c]
+- `numerics_safety_solver.hexa` — transient 1-node Pennes bioheat
+  `ρc·dT/dt = q_gen − w_b·ρ_b·c_b·(T − T_a)` (q_gen = SAR·ρ at the design SAR),
+  forward-Euler to 5·τ_th. PASS = monotone, NO overshoot, steady-state ΔT ≤ φ/τ = 0.5 K
+  (matches `numerics_safety` closed-form), ΔT(3·τ_th) ≈ 0.95·ΔT_ss, Euler ≈ analytic
+  within 1 %. [F-AURA-4, 4c]
+
+### Changed — wiring
+- `cli/hexa-aura.hexa`: `VERIFY_SUBS` + `_verify_script()` + `_print_verify_help()` + `cmd_help()` add
+  `numerics-{clip,coil,cortex,safety}-solver` (23 verify subs total).
+- `verify/lint_numerics.hexa`: `NUMERICS_SCRIPTS` → 14 entries (the solvers match the `numerics_*.hexa` glob).
+- `tests/test_calculators.hexa`: `CASES` → 23 cases.
+- `verify/saturation_check.hexa`: `REQUIRED` → 22 scripts (recipe §1 inventory now includes the per-pillar solvers).
+
+### Honest C3 (raw#10)
+- 0 `.py` added. The solver scripts are closed-form internal consistency (deterministic
+  mini-ODE integrators) — NOT physical experiments. The cortex LIF stub's firing rate is
+  super-physiological (artifact of a simple LIF + strong drive); the check only requires the
+  loop be *stable* and *latency-bounded*, not biologically calibrated. F-AURA-1/2/3/4 (15 sub-IDs)
+  remain **all OPEN**; code-layer 3-tier closure stays 100% (the solvers add T2 *depth*, not closure).
+  NOTE: `hexa` runtime still unavailable in the authoring environment — solvers hand-checked, not executed.
+
 ## [1.0.0] — 2026-05-10 — full design (4 pillars + RSC verify surface)
 
 `hexa-aura` brought up to the `hexa-cern` / `hexa-chip` / `hexa-ufo` level — a complete

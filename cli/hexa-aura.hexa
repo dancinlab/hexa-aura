@@ -203,6 +203,10 @@ let VERIFY_SUBS = [
     "numerics-coil-parity",
     "numerics-cortex-parity",
     "numerics-safety-parity",
+    "numerics-clip-solver",
+    "numerics-coil-solver",
+    "numerics-cortex-solver",
+    "numerics-safety-solver",
     "numerics-cross",
     "numerics-lattice",
     "falsifier",
@@ -225,6 +229,10 @@ fn _verify_script(sub: str) -> str {
     if sub == "numerics-coil-parity"   { return VERIFY_DIR + "/numerics_coil_parity.hexa" }
     if sub == "numerics-cortex-parity" { return VERIFY_DIR + "/numerics_cortex_parity.hexa" }
     if sub == "numerics-safety-parity" { return VERIFY_DIR + "/numerics_safety_parity.hexa" }
+    if sub == "numerics-clip-solver"   { return VERIFY_DIR + "/numerics_clip_solver.hexa" }
+    if sub == "numerics-coil-solver"   { return VERIFY_DIR + "/numerics_coil_solver.hexa" }
+    if sub == "numerics-cortex-solver" { return VERIFY_DIR + "/numerics_cortex_solver.hexa" }
+    if sub == "numerics-safety-solver" { return VERIFY_DIR + "/numerics_safety_solver.hexa" }
     if sub == "numerics-cross"         { return VERIFY_DIR + "/numerics_cross_pillar.hexa" }
     if sub == "numerics-lattice"       { return VERIFY_DIR + "/numerics_lattice_arithmetic.hexa" }
     if sub == "falsifier"              { return VERIFY_DIR + "/falsifier_check.hexa" }
@@ -273,6 +281,10 @@ fn _print_verify_help() {
     println("  numerics-coil-parity     T3 — vs SQUID-MEG / OPM-MEG / TMS figure-8 / Neuralink-N1 / Utah / Stentrode / Argus-Orion")
     println("  numerics-cortex-parity   T3 — vs cochlear-implant ch / Argus-II + Orion / Flesher-2016 ICMS / BrainGate-handwriting / speech-BCI WPM")
     println("  numerics-safety-parity   T3 — vs ICNIRP-2020 / IEEE-C95.1-2019 / Shannon-1992 / McCreery / Rossi-2009 / ASTM-F2503 / IEC-60601")
+    println("  numerics-clip-solver     T2 (2nd stack) — clip anchor-wobble leapfrog ODE (damped torsional oscillator over one chew cycle)")
+    println("  numerics-coil-solver     T2 (2nd stack) — RT-SC drive-loop RL ODE (R=0 ⇒ persistent current; parasitic-lead power ≪ 50 mW)")
+    println("  numerics-cortex-solver   T2 (2nd stack) — LIF-neuron write-loop ODE (fires within sopfr ms, no spurious off-phase firing)")
+    println("  numerics-safety-solver   T2 (2nd stack) — transient Pennes-bioheat ODE (monotone, no overshoot, steady ΔT ≤ 0.5 K)")
     println("  numerics-cross           cross-pillar numerical anchor agreement (3.6 g / 144 / 24 / 0.5 K / sopfr=5 across pillars)")
     println("  numerics-lattice         n=6 lattice float-int precision cross-check (math_pure stability floor)")
     println("  falsifier                F-AURA-1/2/3/4 closure-pct tracker (3-tier ladder, %)")
@@ -427,6 +439,7 @@ fn cmd_help() {
     println("  verify [<sub>]  RSC surface — sub: all (default) | lattice | cross-doc | clip | coil | cortex | safety")
     println("                       | numerics-clip | numerics-coil | numerics-cortex | numerics-safety")
     println("                       | numerics-clip-parity | numerics-coil-parity | numerics-cortex-parity | numerics-safety-parity")
+    println("                       | numerics-clip-solver | numerics-coil-solver | numerics-cortex-solver | numerics-safety-solver")
     println("                       | numerics-cross | numerics-lattice | falsifier | lint-numerics | saturation")
     println("")
     println("global flags: --version, --help, -h, --json")

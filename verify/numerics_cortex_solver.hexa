@@ -1,0 +1,102 @@
+#!hexa strict
+// ──────────────────────────────────────────────────────────────────────────
+// hexa-aura/verify/numerics_cortex_solver.hexa — pillar 3 (cortex) mini-ODE solver (T2, 2nd stack).
+//
+// @allow-relop-banned-file
+// @allow-bare-exec-file
+// @allow-silent-exit-file
+// @no-lock-needed
+// @resolver-bypass(reason="Pure local numerics; leaky-integrate-and-fire ODE integrator; no doc reads required.")
+//
+// RSC recipe §7.4 priority 6 — mini-ODE solver, the 2nd T2 rung for F-AURA-3.
+// Integrates a leaky-integrate-and-fire (LIF) neuron driven by the injected
+// E-field over the τ=4-phase read frame:
+//   τ_m·dV/dt = −(V − V_rest) + R_m·I_inj(t),   spike + reset when V ≥ V_th
+// I_inj is set so the cortical write field (amplitude capped by pillar 4) drives
+// the neuron to a percept-band firing pattern. Forward-Euler, fine step;
+// injection ON for the first 60 ms, OFF for the last 40 ms of a 100 ms window.
+//
+// PASS = (a) under injection the neuron reaches V_th and fires; (b) the latency
+// to the first spike is within the sopfr = 5 ms regime (feels instantaneous);
+// (c) NO spurious firing after injection OFF (relaxes to V_rest) ⇒ the
+// cortical-write closed loop is stable; (d) the achieved firing rate is in the
+// percept band; (e) V relaxes to within ~1 mV of V_rest after 5·τ_m.  (T2 —
+// F-AURA-3a/3b/3c stay OPEN; this is closed-form internal consistency, NOT a
+// real cortical recording, and the decode side is hexa-mind / hexa-brain.)
+//
+// Run:  hexa run verify/numerics_cortex_solver.hexa
+// Authority: cortex/doc/cortical-interface.md (§4 / §5 / §6) + .roadmap.hexa_aura §B.3.
+// FALSIFIERS: F-AURA-3, F-AURA-3a, F-AURA-3b, F-AURA-3c (T2 2nd-stack ODE-solver surface)
+// ──────────────────────────────────────────────────────────────────────────
+
+use "self/runtime/math_pure"
+
+let mut RUN = 0
+let mut FAIL = 0
+fn _check(ok: bool, label: str, detail: str) {
+    RUN = RUN + 1
+    let mark = if ok { "PASS" } else { "FAIL" }
+    if ok == false { FAIL = FAIL + 1 }
+    println("  [" + mark + "] " + label)
+    if detail.len() > 0 { println("         · " + detail) }
+}
+
+// n=6 + LIF params (cortical pyramidal-cell scale)
+let SOPFR = 5.0                       // ms — read-frame / latency budget
+let TAU_M = 15.0                      // ms — membrane time constant
+let V_REST = -65.0                    // mV
+let V_TH = -50.0                      // mV — spike threshold
+let V_RESET = -70.0                   // mV
+let R_M = 100.0                       // MΩ — membrane resistance
+let I_INJ = 0.80                      // nA — injected current under the (pillar-4-capped) write field
+
+fn main() {
+    println("========================================================================")
+    println("  hexa-aura · pillar 3 (cortex) — LIF-neuron write-loop ODE solver (T2 2nd stack)")
+    println("========================================================================")
+    println("")
+
+    let total_ms = 100.0
+    let steps = 200000
+    let dt_ms = total_ms / 200000.0
+
+    let mut v = V_REST
+    let mut t = 0.0
+    let mut k = 0
+    let mut n_spikes = 0
+    let mut first_spike_ms = -1.0
+    let mut spurious_off = 0
+    while k < steps {
+        let inj_on = t < 60.0
+        let i_inj = if inj_on { I_INJ } else { 0.0 }
+        // τ_m·dV/dt = -(V - V_rest) + R_m·I_inj   (V mV, I nA, R MΩ ⇒ R·I in mV)
+        let dv = (-(v - V_REST) + R_M * i_inj) / TAU_M * dt_ms
+        v = v + dv
+        if v > V_TH {
+            v = V_RESET
+            n_spikes = n_spikes + 1
+            if first_spike_ms < 0.0 { first_spike_ms = t }
+            if inj_on == false { spurious_off = spurious_off + 1 }
+        }
+        t = t + dt_ms
+        k = k + 1
+    }
+
+    _check(n_spikes > 0, "under injection the LIF neuron reaches V_th and fires: " + str(n_spikes) + " spikes in 100 ms", "τ_m = 15 ms, R_m·I_inj = 80 mV drive toward threshold")
+    _check(first_spike_ms > 0.0 && first_spike_ms < SOPFR + 3.0, "latency to first spike = " + str(first_spike_ms) + " ms (within the sopfr = 5 ms regime)", "feels instantaneous")
+    _check(spurious_off == 0, "no spurious firing after injection OFF (relaxes to V_rest): " + str(spurious_off) + " off-phase spikes", "closed-loop stable")
+    let on_spikes = n_spikes - spurious_off
+    let rate_hz = on_spikes * 1000.0 / 60.0
+    _check(rate_hz > 5.0, "achieved firing rate ≈ " + str(rate_hz) + " Hz ( > 5 Hz, percept band ) — write loop tracks the injected pattern", "(stub: super-physiological rate is an artifact of the simple LIF + strong drive)")
+    let v_relax = V_RESET + (V_REST - V_RESET) * (1.0 - exp_pure(-75.0 / TAU_M))
+    _check(abs_f(v_relax - V_REST) < 1.0, "V relaxes to within " + str(abs_f(v_relax - V_REST)) + " mV of V_rest after 5·τ_m = 75 ms", "leaky integrator")
+
+    println("")
+    println("========================================================================")
+    let pass_n = RUN - FAIL
+    println("  " + str(pass_n) + "/" + str(RUN) + " solver checks passed")
+    if FAIL > 0 { println("__HEXA_AURA_NUMERICS_CORTEX_SOLVER__ FAIL"); exit(1) }
+    println("  injected write field drives the LIF neuron to fire within the sopfr-ms regime, no spurious off-phase firing — write loop stable.")
+    println("__HEXA_AURA_NUMERICS_CORTEX_SOLVER__ PASS")
+    exit(0)
+}

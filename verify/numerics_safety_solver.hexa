@@ -1,0 +1,107 @@
+#!hexa strict
+// ──────────────────────────────────────────────────────────────────────────
+// hexa-aura/verify/numerics_safety_solver.hexa — pillar 4 (safety) mini-ODE solver (T2, 2nd stack).
+//
+// @allow-relop-banned-file
+// @allow-bare-exec-file
+// @allow-silent-exit-file
+// @no-lock-needed
+// @resolver-bypass(reason="Pure local numerics; transient Pennes-bioheat ODE integrator; no doc reads required.")
+//
+// RSC recipe §7.4 priority 6 — mini-ODE solver, the 2nd T2 rung for F-AURA-4.
+// Integrates the TRANSIENT 1-node Pennes bioheat equation under the worst-case
+// continuous write duty:
+//   ρ·c·dT/dt = q_gen − w_b·ρ_b·c_b·(T − T_a)
+// from T(0) = T_a, with q_gen = SAR·ρ at the pillar-2/pillar-4 design SAR
+// (0.025 W/kg ⇒ q_gen = 25 W/m³). Forward-Euler. The steady state is
+// ΔT_ss = q_gen/(w_b·ρ_b·c_b); the time constant is τ_th = ρ·c/(w_b·ρ_b·c_b).
+//
+// PASS = (a) T(t) is monotone toward ΔT_ss and NEVER overshoots; (b) the
+// achieved steady-state ΔT ≤ φ/τ = 0.5 K (matches numerics_safety closed-form);
+// (c) within 3·τ_th the temperature is within ~5 % of ΔT_ss (the thermal
+// response is well-conditioned, no oscillation).  (T2 — F-AURA-4c stays OPEN;
+// this is closed-form internal consistency, NOT a bench thermal measurement,
+// NOT a regulatory compliance test.)
+//
+// Run:  hexa run verify/numerics_safety_solver.hexa
+// Authority: safety/doc/cortical-safety.md (§4 cap 3 / §6) + .roadmap.hexa_aura §B.4.
+// FALSIFIERS: F-AURA-4, F-AURA-4c (T2 2nd-stack ODE-solver surface)
+// ──────────────────────────────────────────────────────────────────────────
+
+use "self/runtime/math_pure"
+
+let mut RUN = 0
+let mut FAIL = 0
+fn _check(ok: bool, label: str, detail: str) {
+    RUN = RUN + 1
+    let mark = if ok { "PASS" } else { "FAIL" }
+    if ok == false { FAIL = FAIL + 1 }
+    println("  [" + mark + "] " + label)
+    if detail.len() > 0 { println("         · " + detail) }
+}
+
+// n=6 + bioheat params
+let PHI = 2.0
+let TAU = 4.0
+let DT_CAP = PHI / TAU                 // 0.5 K
+let RHO = 1040.0                       // kg/m³ tissue
+let C = 3600.0                         // J/(kg·K) tissue specific heat
+let SAR = 0.025                        // W/kg — design SAR (numerics_safety)
+let Q_GEN = SAR * RHO                  // W/m³ deposited
+let W_B = 0.0005                       // 1/s blood perfusion rate
+let RHO_B = 1050.0
+let C_B = 3600.0                        // J/(kg·K) blood
+let G = W_B * RHO_B * C_B               // W/(m³·K) effective perfusion conductance
+let DT_SS = Q_GEN / G                   // steady-state ΔT
+let TAU_TH = (RHO * C) / G              // thermal time constant (s)
+
+fn main() {
+    println("========================================================================")
+    println("  hexa-aura · pillar 4 (safety) — transient Pennes-bioheat ODE solver (T2 2nd stack)")
+    println("========================================================================")
+    println("")
+
+    // integrate to 5·τ_th, many steps
+    let t_end = 5.0 * TAU_TH
+    let steps = 200000
+    let dt = t_end / 200000.0
+
+    let mut dT = 0.0                    // ΔT above ambient
+    let mut t = 0.0
+    let mut k = 0
+    let mut dT_max = 0.0
+    let mut overshoot = 0
+    let mut dT_at_3tau = -1.0
+    while k < steps {
+        // ρc·d(ΔT)/dt = q_gen − G·ΔT  ⇒  d(ΔT)/dt = (q_gen − G·ΔT)/(ρc)
+        let ddT = (Q_GEN - G * dT) / (RHO * C) * dt
+        dT = dT + ddT
+        if dT > dT_max { dT_max = dT }
+        if dT > DT_SS * 1.0001 { overshoot = overshoot + 1 }   // first-order ⇒ should never exceed DT_SS
+        t = t + dt
+        if dT_at_3tau < 0.0 && t > 3.0 * TAU_TH { dT_at_3tau = dT }
+        k = k + 1
+    }
+
+    // analytic: ΔT(t) = DT_SS·(1 − exp(−t/τ_th))
+    let dT_analytic_end = DT_SS * (1.0 - exp_pure(-t_end / TAU_TH))
+
+    // PASS conditions
+    _check(overshoot == 0, "no temperature overshoot (first-order Pennes ⇒ monotone toward steady state): overshoot steps = " + str(overshoot), "")
+    _check(DT_SS < DT_CAP + 1.0e-9, "steady-state ΔT_ss = " + str(DT_SS) + " K ≤ φ/τ = 0.5 K cap", "ΔT_ss = q_gen/(w_b·ρ_b·c_b); matches numerics_safety closed-form")
+    _check(dT_max < DT_CAP + 1.0e-9, "peak transient ΔT_max = " + str(dT_max) + " K ≤ 0.5 K (never exceeds the cap during warm-up)", "")
+    // within 3·τ_th, ΔT within ~5 % of steady state
+    let frac = if DT_SS > 1.0e-12 { dT_at_3tau / DT_SS } else { 1.0 }
+    _check(frac > 0.93 && frac < 1.01, "ΔT at 3·τ_th = " + str(frac) + "× steady state ( ≈ 0.95 expected, 1 − e⁻³ ) — well-conditioned thermal response", "τ_th = " + str(TAU_TH) + " s")
+    // numeric Euler vs analytic agree
+    _check(abs_f(dT - dT_analytic_end) / DT_SS < 0.01, "Euler ΔT(5τ) = " + str(dT) + " K agrees with analytic " + str(dT_analytic_end) + " K within 1 %", "")
+
+    println("")
+    println("========================================================================")
+    let pass_n = RUN - FAIL
+    println("  " + str(pass_n) + "/" + str(RUN) + " solver checks passed")
+    if FAIL > 0 { println("__HEXA_AURA_NUMERICS_SAFETY_SOLVER__ FAIL"); exit(1) }
+    println("  transient bioheat: monotone, no overshoot, steady-state ΔT ≈ " + str(DT_SS) + " K ≤ 0.5 K cap, τ_th ≈ " + str(TAU_TH) + " s.")
+    println("__HEXA_AURA_NUMERICS_SAFETY_SOLVER__ PASS")
+    exit(0)
+}

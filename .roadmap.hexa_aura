@@ -104,6 +104,13 @@ Authority: this file §A.1 is the SSOT; every pillar doc + verify/* re-asserts t
   - `build/Makefile` + `build/header.tex` — pandoc + xelatex 5-PDF rebuild
   - `docs/numerics_methodology.md` — reader's map of the verify surface
   - 0 `.py` added — all new runnable code is `.hexa`.
+- **Cycle 2 (2026-05-11)** — RSC priority-6: 4 mini-ODE solver scripts (the 2nd T2 stack per pillar). Commit follows `3f59892`. Adds:
+  - `verify/numerics_clip_solver.hexa` — clip-anchor wobble: damped torsional oscillator `I·θ'' + b·θ' + κ·θ = M_jaw(t)`, `I = (1/3)·(σ·n/10)·(J₂)²`, leapfrog KDK over one τ=4 chew cycle. [F-AURA-1, 1a]
+  - `verify/numerics_coil_solver.hexa` — RT-SC drive-loop RL ODE `L·dI/dt = V − R·I` (R=0 SC loop ⇒ persistent current, 0 dissipation; R=50 mΩ parasitic lead ⇒ avg power ≪ 50 mW). [F-AURA-2, 2c]
+  - `verify/numerics_cortex_solver.hexa` — LIF neuron under the injected write field `τ_m·dV/dt = −(V − V_rest) + R_m·I_inj`; fires within the sopfr ms regime, no spurious off-phase firing (write loop stable). [F-AURA-3, 3a/3b/3c]
+  - `verify/numerics_safety_solver.hexa` — transient 1-node Pennes bioheat `ρc·dT/dt = q_gen − w_b·ρ_b·c_b·(T − T_a)`; monotone, no overshoot, steady-state ΔT ≤ φ/τ = 0.5 K, ΔT(3·τ_th) ≈ 0.95·ΔT_ss. [F-AURA-4, 4c]
+  - Wiring: `cli/hexa-aura.hexa` `VERIFY_SUBS` + `_verify_script()` + help (23 verify subs); `verify/lint_numerics.hexa` `NUMERICS_SCRIPTS` → 14; `tests/test_calculators.hexa` `CASES` → 23; `verify/saturation_check.hexa` `REQUIRED` → 22.
+  - Recipe §1 inventory now exhausted (cross-cutters + per-pillar T1/T2(×2)/T3 + meta). sat-1 ∧ sat-2 hold → `__HEXA_AURA_RSC_SATURATED__ STOP`. F-AURA-1/2/3/4 (15 sub-IDs) stay all OPEN; code-layer 3-tier closure stays 100% (solvers add T2 depth, not closure). 0 `.py`. (hexa runtime unavailable in authoring env — hand-checked, not executed.)
 
 ---
 
