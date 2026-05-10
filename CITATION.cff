@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use hexa-aura in academic work, please cite as below."
+title: "hexa-aura: HEXA family post-aural BCI substrate (측두골 클립, n=6 invariant lattice)"
+authors:
+  - name: dancinlab contributors
+    affiliation: dancinlab
+license: MIT
+repository-code: "https://github.com/dancinlab/hexa-aura"
+url: "https://github.com/dancinlab/hexa-aura"
+version: "v0.1.0"
+date-released: "2026-05-10"
+keywords:
+  - hexa-family
+  - n6-lattice
+  - bci
+  - post-aural
+  - mastoid-clip
+  - wearable-replacement
+  - neuromorphic
+  - perfect-number

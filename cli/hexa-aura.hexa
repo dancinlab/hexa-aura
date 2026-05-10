@@ -1,0 +1,188 @@
+#!hexa strict
+// hexa-aura/cli/hexa-aura.hexa — standalone hexa-aura CLI router
+//
+// 11-doc post-aural BCI substrate (HEXA family) router. Spec-first
+// dispatcher: each verb subcmd resolves its spec doc path and prints
+// headline (head -30).
+//
+// Concept: 측두골(temporal bone) 유양돌기(mastoid) 클립이 스마트폰 +
+// 18개 웨어러블 (AirPods/Vision Pro/Watch/외골격/의수/e-skin/...)을
+// 0개로 수렴. 양쪽 φ=2개, 각 3.6g, RT-SC 나노코일 σ²=144ch/타일.
+//
+// v0.1.0 ships as a thin BUNDLE. 5 of 11 docs are intentionally
+// extracted from older canon SHAs (579ab196, ab155706) to recover
+// richer Korean content lost in a canonical-format migration. The
+// remaining 6 are current canon copies. See TODO.md §1.
+//
+// Cross-link policy (raw#10):
+//   - decoder model serving        → hexa-codex CLI
+//   - neuromorphic silicon         → hexa-chip CLI
+//   - 5G/6G uplink                 → hexa-grid CLI
+//
+// Root resolution: $HEXA_AURA_ROOT env, else inferred from $0.
+//
+// raw#9 hexa-only, raw#15 read-only.
+
+let VERSION = "0.1.0"
+
+let HOME = env("HOME")
+let HEXA_AURA_ROOT_ENV = env("HEXA_AURA_ROOT")
+
+fn hexa_aura_root() -> str {
+    if HEXA_AURA_ROOT_ENV.len() > 0 { return HEXA_AURA_ROOT_ENV }
+    let inferred = exec("dirname \"$(dirname \"$0\")\" 2>/dev/null || true").trim()
+    if inferred.len() > 0 { return inferred }
+    return HOME + "/.hexa-aura"  // @allow-devpath
+}
+
+let HM = hexa_aura_root()
+
+// 11-doc spec registry: verb_name → (subdir, filename) under docs/
+let VERBS = [
+    ["neuro",                     "docs", "neuro.md"],
+    ["hexa_neuro",                "docs", "hexa-neuro.md"],
+    ["brain_computer_interface",  "docs", "brain-computer-interface.md"],
+    ["hexa_ear",                  "docs", "hexa-ear.md"],
+    ["hexa_neuromorphic",         "docs", "hexa-neuromorphic.md"],
+    ["l9_field_photon_neuro",     "docs", "l9-field-photon-neuro.md"],
+    ["hexa_mind",                 "docs", "hexa-mind.md"],
+    ["hexa_speak",                "docs", "hexa-speak.md"],
+    ["hexa_dream",                "docs", "hexa-dream.md"],
+    ["hexa_telepathy",            "docs", "hexa-telepathy.md"],
+    ["neuroscience",              "docs", "neuroscience.md"],
+]
+
+fn shq(s: str) -> str {
+    return "'" + s.replace("'", "'\\''") + "'"
+}
+
+fn _file_exists(p: str) -> bool {
+    let r = exec("[ -f " + shq(p) + " ] && echo yes || echo no").trim()
+    return r == "yes"
+}
+
+fn _spec_path(subdir: str, fname: str) -> str {
+    return HM + "/" + subdir + "/" + fname
+}
+
+fn _print_spec_headline(verb: str, spec_path: str) {
+    if _file_exists(spec_path) == false {
+        println("ERROR: spec doc not found: " + spec_path)
+        println("  (set HEXA_AURA_ROOT or run from repo root)")
+        return
+    }
+    println("hexa-aura " + verb + " — spec doc:")
+    println("  " + spec_path)
+    println("")
+    println("--- doc head (first 30 lines) ---")
+    let raw = exec("head -30 " + shq(spec_path) + " 2>&1")
+    println(raw.trim())
+    println("--- end doc head ---")
+    println("")
+    println("__HEXA_AURA_" + verb.to_upper() + "__ PASS")
+}
+
+fn _print_caveats() {
+    println("")
+    println("--- caveats (raw#10 C3) ---")
+    println("  1. v0.1.0 ships as BUNDLE of 11 canon docs. 5 of 11 are")
+    println("     historically restored from canon@{579ab196, ab155706}")
+    println("     to recover richer Korean content (TODO.md §1).")
+    println("  2. decoder model serving  → hexa-codex CLI (do NOT proxy).")
+    println("  3. neuromorphic silicon   → hexa-chip CLI.")
+    println("  4. 5G/6G uplink           → hexa-grid CLI.")
+}
+
+fn cmd_status(a: [str]) {
+    println("hexa-aura " + VERSION + " status — 11-doc post-aural BCI substrate (측두골 클립)")
+    println("")
+    println("  Tier 1 — 귀뒤 BCI 스택  (neuro · hexa-neuro · brain-computer-interface · hexa-ear)")
+    println("  Tier 2 — 칩 하드웨어    (hexa-neuromorphic · l9-field-photon-neuro)")
+    println("  Tier 3 — 모바일 대체   (hexa-mind · hexa-speak · hexa-dream · hexa-telepathy)")
+    println("  Tier 4 — 배경          (neuroscience)")
+    println("")
+    println("  ✦ historical KR restore: neuro · brain-computer-interface · hexa-ear · hexa-speak · hexa-dream")
+    println("  verdict: BUNDLE_FIRST (11/11 docs are canon copies; 5 are historical)")
+    println("  cross-link: serve → hexa-codex · chip → hexa-chip · uplink → hexa-grid")
+    _print_caveats()
+}
+
+fn cmd_verb(verb: str) {
+    for row in VERBS {
+        if row[0] == verb {
+            _print_spec_headline(verb, _spec_path(row[1], row[2]))
+            return
+        }
+    }
+    println("hexa-aura: unknown verb: " + verb)
+    println("(try `hexa-aura status` for the verb list)")
+    exit(2)
+}
+
+fn cmd_selftest(a: [str]) {
+    println("hexa-aura selftest — 11-doc presence check")
+    println("")
+    let mut count = 0
+    for row in VERBS {
+        let verb = row[0]
+        let path = _spec_path(row[1], row[2])
+        if _file_exists(path) {
+            println("  [PASS] " + verb)
+            count = count + 1
+        } else {
+            println("  [FAIL] " + verb + " (missing: " + path + ")")
+        }
+    }
+    println("")
+    println("docs_present = " + str(count) + " / 11")
+    if count == 11 {
+        println("__HEXA_AURA_SELFTEST__ PASS")
+    } else {
+        println("__HEXA_AURA_SELFTEST__ FAIL")
+        exit(1)
+    }
+}
+
+fn cmd_version() {
+    println("hexa-aura " + VERSION)
+    println("standalone n=6 post-aural BCI substrate (HEXA family — bundled from canon@aadcb101 + 2 historical SHAs on 2026-05-10)")
+    println("license: MIT")
+    println("repo:    https://github.com/dancinlab/hexa-aura")
+}
+
+fn cmd_help() {
+    println("hexa-aura " + VERSION + " — standalone post-aural BCI substrate CLI")
+    println("")
+    println("usage: hexa-aura <subcmd> [flags...]")
+    println("")
+    println("verb subcommands (11-doc bundle):")
+    for row in VERBS {
+        println("  " + row[0])
+    }
+    println("")
+    println("utility:")
+    println("  status          11-doc table + cross-link + caveats")
+    println("  selftest        11-doc presence check")
+    println("")
+    println("global flags: --version, --help, -h")
+    println("env:          HEXA_AURA_ROOT (override repo root)")
+    println("")
+    println("cross-link (call sibling CLI directly):")
+    println("  decoder model serving → hexa-codex serve")
+    println("  neuromorphic silicon  → hexa-chip neuromorphic")
+    println("  5G/6G uplink          → hexa-grid v2x")
+}
+
+fn main(args: [str]) {
+    if args.len() < 2 { cmd_help(); return }
+    let sub = args[1]
+
+    if sub == "--version" || sub == "-v" { cmd_version(); return }
+    if sub == "--help"    || sub == "-h" { cmd_help();    return }
+
+    if sub == "status"   { cmd_status(args);   return }
+    if sub == "selftest" { cmd_selftest(args); return }
+    if sub == "help"     { cmd_help();         return }
+
+    cmd_verb(sub)
+}
