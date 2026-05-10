@@ -1,0 +1,111 @@
+#!hexa strict
+// ──────────────────────────────────────────────────────────────────────────
+// hexa-aura/verify/lint_numerics.hexa — meta-lint: every numerics_*.hexa follows the 5 RSC invariants.
+//
+// @allow-relop-banned-file
+// @allow-bare-exec-file
+// @allow-silent-exit-file
+// @no-lock-needed
+// @resolver-bypass(reason="Pure local meta-lint; reads verify/ scripts; no network.")
+//
+// Per runnable_surface_recipe.md §4, every verify/numerics_*.hexa must:
+//   1. `use "self/runtime/math_pure"` (no raw float math)
+//   2. carry a `__HEXA_AURA_<NAME>__` sentinel prefix + `__ PASS` suffix
+//   3. declare a `FALSIFIERS` list (the F-AURA-* IDs it bears on)
+//   4. have `exit(0)` on its PASS path
+//   5. have `let mut RUN = 0` + `let mut FAIL = 0` counters
+// Plus: the `NUMERICS_SCRIPTS` inventory below must equal the on-disk
+// `verify/numerics_*.hexa` glob count (inventory-drift detector).
+//
+// PASS = every numerics_*.hexa satisfies all 5 invariants AND the inventory matches.
+//
+// Run:  hexa run verify/lint_numerics.hexa
+// FALSIFIERS: F-AURA-1, F-AURA-2, F-AURA-3, F-AURA-4 (meta-lint surface — keeps the T2/T3 ladder honest)
+// ──────────────────────────────────────────────────────────────────────────
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_AURA_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()  // @allow-bare-exec
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/.hexa-aura"  // @allow-devpath
+}
+let ROOT = _root()
+let VDIR = ROOT + "/verify"
+
+fn _read(p: str) -> str { if file_exists(p) == false { return "" } return read_file(p) }
+fn _has(t: str, s: str) -> bool { if t.len() == 0 { return false } return t.find(s) > -1 }
+
+let mut RUN = 0
+let mut FAIL = 0
+fn _check(ok: bool, label: str, detail: str) {
+    RUN = RUN + 1
+    let mark = if ok { "PASS" } else { "FAIL" }
+    if ok == false { FAIL = FAIL + 1 }
+    println("  [" + mark + "] " + label)
+    if detail.len() > 0 { println("         · " + detail) }
+}
+
+// the on-disk inventory of verify/numerics_*.hexa (drift detector — must match the glob)
+let NUMERICS_SCRIPTS = [
+    "numerics_clip.hexa",
+    "numerics_coil.hexa",
+    "numerics_cortex.hexa",
+    "numerics_safety.hexa",
+    "numerics_clip_parity.hexa",
+    "numerics_coil_parity.hexa",
+    "numerics_cortex_parity.hexa",
+    "numerics_safety_parity.hexa",
+    "numerics_cross_pillar.hexa",
+    "numerics_lattice_arithmetic.hexa",
+]
+
+fn main() {
+    println("========================================================================")
+    println("  hexa-aura — meta-lint of verify/numerics_*.hexa (5 RSC invariants)")
+    println("========================================================================")
+    println("  verify dir: " + VDIR)
+    println("")
+
+    // inventory-drift: glob the dir and compare count
+    let glob_out = exec("ls -1 " + "'" + VDIR + "'" + "/numerics_*.hexa 2>/dev/null | wc -l").trim()  // @allow-bare-exec
+    let glob_n = if glob_out.len() > 0 { glob_out.to_int() } else { 0 }
+    _check(glob_n == NUMERICS_SCRIPTS.len(), "inventory matches glob: NUMERICS_SCRIPTS has " + str(NUMERICS_SCRIPTS.len()) + " entries, on-disk glob = " + str(glob_n), "")
+    println("")
+
+    for fn_name in NUMERICS_SCRIPTS {
+        let path = VDIR + "/" + fn_name
+        let txt = _read(path)
+        println("  ── " + fn_name + " ──")
+        _check(txt.len() > 0, fn_name + ": present on disk", path)
+        // inv 1: math_pure import
+        _check(_has(txt, "use \"self/runtime/math_pure\""), fn_name + ": inv 1 — `use \"self/runtime/math_pure\"` present", "")
+        // inv 2: sentinel prefix + PASS suffix
+        _check(_has(txt, "__HEXA_AURA_") && _has(txt, "__ PASS"), fn_name + ": inv 2 — `__HEXA_AURA_<NAME>__ PASS` sentinel present", "")
+        // inv 3: FALSIFIERS list
+        _check(_has(txt, "FALSIFIERS:") || _has(txt, "FALSIFIERS ") || _has(txt, "FALSIFIERS\t"), fn_name + ": inv 3 — FALSIFIERS list declared", "")
+        _check(_has(txt, "F-AURA-"), fn_name + ": inv 3b — bears on at least one F-AURA-* falsifier", "")
+        // inv 4: exit(0) on PASS path
+        _check(_has(txt, "exit(0)"), fn_name + ": inv 4 — `exit(0)` on PASS path present", "")
+        // inv 5: RUN/FAIL counters
+        _check(_has(txt, "let mut RUN = 0") && _has(txt, "let mut FAIL = 0"), fn_name + ": inv 5 — `let mut RUN = 0` + `let mut FAIL = 0` counters present", "")
+        println("")
+    }
+
+    // also: calc_*.hexa T1 scripts should carry the sentinel + FALSIFIERS (lighter check)
+    let calc_scripts = ["calc_clip.hexa", "calc_coil.hexa", "calc_cortex.hexa", "calc_safety.hexa"]
+    for cn in calc_scripts {
+        let txt = _read(VDIR + "/" + cn)
+        _check(txt.len() > 0 && _has(txt, "__HEXA_AURA_CALC_") && _has(txt, "F-AURA-"), cn + ": T1 carries sentinel + F-AURA-* falsifier IDs", "")
+    }
+
+    println("")
+    println("========================================================================")
+    let pass_n = RUN - FAIL
+    println("  " + str(pass_n) + "/" + str(RUN) + " meta-lint checks passed")
+    if FAIL > 0 { println("__HEXA_AURA_LINT_NUMERICS__ FAIL"); exit(1) }
+    println("  every numerics_*.hexa satisfies the 5 RSC invariants; inventory matches the on-disk glob.")
+    println("__HEXA_AURA_LINT_NUMERICS__ PASS")
+    exit(0)
+}

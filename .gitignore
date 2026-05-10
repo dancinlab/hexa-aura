@@ -1,0 +1,6 @@
+# hexa-aura/.gitignore
+build/out/
+*.pdf
+state/*.log
+.write_test
+.wt

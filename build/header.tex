@@ -1,0 +1,35 @@
+% hexa-aura/build/header.tex — pandoc xelatex include-in-header.
+%
+% Soft-guarded with \IfFileExists{} so a build host WITHOUT the optional
+% packages still produces a clean ASCII-only PDF (Unicode glyphs σ/τ/φ/μ/Δ/√/≤/≫
+% may render as boxes, non-fatal; Korean labels in the docs need xeCJK).
+% hexa-aura ships ZERO hard build deps — this is a convenience header only.
+
+\IfFileExists{fontspec.sty}{\usepackage{fontspec}}{}
+\IfFileExists{xeCJK.sty}{%
+  \usepackage{xeCJK}%
+  % best-effort CJK font; fall back silently if absent
+  \IfFontExistsTF{Noto Sans CJK KR}{\setCJKmainfont{Noto Sans CJK KR}}{%
+    \IfFontExistsTF{NanumGothic}{\setCJKmainfont{NanumGothic}}{%
+      \IfFontExistsTF{UnDotum}{\setCJKmainfont{UnDotum}}{}}}%
+}{}
+\IfFileExists{titlesec.sty}{\usepackage{titlesec}}{}
+\IfFileExists{xcolor.sty}{\usepackage{xcolor}}{}
+\IfFileExists{fancyhdr.sty}{%
+  \usepackage{fancyhdr}%
+  \pagestyle{fancy}\fancyhf{}%
+  \fancyhead[L]{\small hexa-aura — post-aural BCI substrate}%
+  \fancyhead[R]{\small n=6 · F-AURA-* OPEN}%
+  \fancyfoot[C]{\small\thepage}%
+  \renewcommand{\headrulewidth}{0.3pt}%
+}{}
+
+% Provide harmless macros so missing-glyph passes don't crash.
+\providecommand{\sigmasix}{$\sigma(6){=}12$}
+\providecommand{\tausix}{$\tau(6){=}4$}
+\providecommand{\phisix}{$\varphi(6){=}2$}
+\providecommand{\Jtwo}{$J_2{=}24$}
+
+% Allow long unbreakable strings (file paths, sentinels) to wrap.
+\IfFileExists{seqsplit.sty}{\usepackage{seqsplit}}{}
+\sloppy

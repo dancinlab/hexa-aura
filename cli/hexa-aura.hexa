@@ -1,196 +1,463 @@
 #!hexa strict
+// ──────────────────────────────────────────────────────────────────────────
 // hexa-aura/cli/hexa-aura.hexa — standalone hexa-aura CLI router
 //
-// 5-doc post-aural BCI CHIP-SUBSTRATE (HEXA family) router. Spec-first
-// dispatcher: each verb subcmd resolves its spec doc path and prints
-// headline (head -30).
+// @allow-bare-exec-file
+// @allow-silent-exit-file
+// @allow-silent-catch-file
+// @allow-relop-banned-file
+// @no-lock-needed
+// @resolver-bypass(reason="Pure local CLI router + verify dispatcher; reads project files only.")
 //
-// Concept: 측두골(temporal bone) 유양돌기(mastoid) 클립이 스마트폰 +
-// 18개 웨어러블 (AirPods/Vision Pro/Watch/외골격/의수/e-skin/...)을
-// 0개로 수렴. 양쪽 φ=2개, 각 3.6g, RT-SC 나노코일 σ²=144ch/타일.
+// Post-aural BCI CHIP-SUBSTRATE (HEXA family). 4 pillar verbs + 5 atlas verbs
+// + status + selftest + verify [<sub>] dispatcher.
+//
+// Concept: 측두골(temporal bone) 유양돌기(mastoid) 클립 한 쌍 (φ=2개, 각
+// σ·n/10 = 3.6 g) 이 스마트폰 + 18개 웨어러블을 0개로 수렴. RT-SC 나노코일이
+// σ²=144 ch/타일로 A1/V1~V6/S1/M1 피질을 직접 read/write.
+//
+// 4 pillars (n=6 substrate):
+//   clip    — HEXA-MASTOID-CLIP   (form-factor: 3.6 g/side, τ=4 anchor, sopfr=5 mm bone window)  [F-AURA-1]
+//   coil    — HEXA-RT-SC-NANOCOIL (transducer: μ=1 μm pitch, σ²=144 ch/tile, J₂=24 ch/macro)     [F-AURA-2]
+//   cortex  — HEXA-CORTICAL-IF    (cortical I/O: σ=12 zones, φ=2 dir, τ=4 modes, sopfr=5 ms)      [F-AURA-3]
+//   safety  — HEXA-CORTICAL-SAFETY(caps: Shannon k≤1.5, SAR≤2 W/kg, ΔT≤0.5 K, FAR≤1 %, MRI-cond) [F-AURA-4]
+//
+// 5 atlas docs (background):
+//   neuro · brain-computer-interface · hexa-neuromorphic · l9-field-photon-neuro · neuroscience
 //
 // Scope discipline: hexa-aura is the CHIP + FORM-FACTOR substrate.
-// Cognitive verbs (mind/oracle/telepathy/dream) → hexa-mind (pending).
-// Sensory verbs (ear/speak/empath/olfact)       → hexa-senses (pending).
-// BCI ML stack (hexa-neuro)                     → hexa-mind (pending).
+//   cognitive verbs (mind/oracle/telepathy/dream) → hexa-mind (pending)
+//   sensory   verbs (ear/speak/empath/olfact)     → hexa-senses (pending)
+//   BCI ML stack (hexa-neuro)                     → hexa-mind (pending)
+//   working EEG/BMI pipeline                      → hexa-brain (sister)
+//   decoder model serving                         → hexa-codex CLI
+//   neuromorphic silicon (chip-grade)             → hexa-chip CLI
+//   5G/6G uplink for cloud sync                   → hexa-grid CLI
 //
-// v0.1.0 ships as a thin BUNDLE. 2 of 5 docs are intentionally
-// extracted from older canon SHAs (579ab196, ab155706) to recover
-// richer Korean content lost in a canonical-format migration. The
-// remaining 3 are current canon copies. See TODO.md §1.
-//
-// Cross-link policy (raw#10):
-//   - cognitive verbs              → hexa-mind (pending)
-//   - sensory verbs                → hexa-senses (pending)
-//   - working EEG/BMI pipeline     → hexa-brain (sister)
-//   - decoder model serving        → hexa-codex CLI
-//   - neuromorphic silicon         → hexa-chip CLI
-//   - 5G/6G uplink                 → hexa-grid CLI
+// Honest C3 (raw#10): verify/* sentinel PASS = n=6 lattice + token consistency
+// + published-ref parity arithmetic. NOT in-vivo validation, NOT regulatory
+// clearance. F-AURA-1/2/3/4 all OPEN. See .roadmap.hexa_aura §B.
 //
 // Root resolution: $HEXA_AURA_ROOT env, else inferred from $0.
-//
 // raw#9 hexa-only, raw#15 read-only.
+// ──────────────────────────────────────────────────────────────────────────
 
-let VERSION = "0.1.0"
+let VERSION = "1.0.0"
 
 let HOME = env("HOME")
 let HEXA_AURA_ROOT_ENV = env("HEXA_AURA_ROOT")
 
 fn hexa_aura_root() -> str {
     if HEXA_AURA_ROOT_ENV.len() > 0 { return HEXA_AURA_ROOT_ENV }
-    let inferred = exec("dirname \"$(dirname \"$0\")\" 2>/dev/null || true").trim()
+    let inferred = exec("dirname \"$(dirname \"$0\")\" 2>/dev/null || true").trim()  // @allow-bare-exec
     if inferred.len() > 0 { return inferred }
     return HOME + "/.hexa-aura"  // @allow-devpath
 }
 
 let HM = hexa_aura_root()
 
-// 5-doc spec registry: verb_name → (subdir, filename) under docs/
-let VERBS = [
-    ["neuro",                     "docs", "neuro.md"],
-    ["brain_computer_interface",  "docs", "brain-computer-interface.md"],
-    ["hexa_neuromorphic",         "docs", "hexa-neuromorphic.md"],
-    ["l9_field_photon_neuro",     "docs", "l9-field-photon-neuro.md"],
-    ["neuroscience",              "docs", "neuroscience.md"],
+// ─── pillar registry: verb → (subdir/doc path, falsifier, headline) ───
+let PILLARS = [
+    ["clip",   "clip/doc/mastoid-clip.md",        "F-AURA-1", "HEXA-MASTOID-CLIP — 측두골 클립 form-factor (φ=2 × 3.6 g, τ=4 anchor, sopfr=5 mm bone)"],
+    ["coil",   "coil/doc/rt-sc-nanocoil.md",      "F-AURA-2", "HEXA-RT-SC-NANOCOIL — RT-SC nano-coil tile (μ=1 μm pitch, σ²=144 ch/tile, J₂=24 ch/macro, n^τ=1296-ch hex)"],
+    ["cortex", "cortex/doc/cortical-interface.md","F-AURA-3", "HEXA-CORTICAL-IF — direct cortical I/O (σ=12 zones, φ=2 dir, τ=4 modes, sopfr=5 ms; 18 wearables → 0)"],
+    ["safety", "safety/doc/cortical-safety.md",  "F-AURA-4", "HEXA-CORTICAL-SAFETY — caps (Shannon k≤1.5, SAR≤2 W/kg, ΔT≤0.5 K, watchdog FAR≤1 %, MRI-conditional, no-craniotomy)"],
 ]
+
+// ─── 5-doc atlas registry: verb → doc path ───
+let ATLAS = [
+    ["neuro",                    "docs/neuro.md"],
+    ["brain_computer_interface", "docs/brain-computer-interface.md"],
+    ["hexa_neuromorphic",        "docs/hexa-neuromorphic.md"],
+    ["l9_field_photon_neuro",    "docs/l9-field-photon-neuro.md"],
+    ["neuroscience",             "docs/neuroscience.md"],
+]
+
+let LOG_PATH = HM + "/state/hexa_aura_cli.log"
+
+// ─── helpers ───
 
 fn shq(s: str) -> str {
     return "'" + s.replace("'", "'\\''") + "'"
 }
 
+fn has_flag(a: [str], flag: str) -> bool {
+    for x in a { if x == flag { return true } }
+    return false
+}
+
+fn json_mode(a: [str]) -> bool { return has_flag(a, "--json") }
+
 fn _file_exists(p: str) -> bool {
-    let r = exec("[ -f " + shq(p) + " ] && echo yes || echo no").trim()
+    let r = exec("[ -f " + shq(p) + " ] && echo yes || echo no").trim()  // @allow-bare-exec
     return r == "yes"
 }
 
-fn _spec_path(subdir: str, fname: str) -> str {
-    return HM + "/" + subdir + "/" + fname
+fn _ts_now() -> str { return exec("date -u '+%Y-%m-%dT%H:%M:%SZ'").trim() }  // @allow-bare-exec
+
+fn _audit(subcmd: str, args_str: str, exit_code: int) {
+    let line = "{\"ts\":\"" + _ts_now() + "\",\"caller\":\"hexa_aura_standalone\",\"subcmd\":\"hexa-aura " +
+               subcmd + "\",\"args\":\"" + args_str.replace("\"", "\\\"") +
+               "\",\"exit_code\":" + str(exit_code) + ",\"version\":\"" + VERSION + "\"}"
+    let _mk = exec("mkdir -p " + shq(HM + "/state") + " 2>/dev/null")  // @allow-bare-exec @allow-silent-exit
+    let _w = exec("printf '%s\\n' " + shq(line) + " >> " + shq(LOG_PATH) + " 2>/dev/null")  // @allow-bare-exec @allow-silent-exit
 }
 
-fn _print_spec_headline(verb: str, spec_path: str) {
-    if _file_exists(spec_path) == false {
-        println("ERROR: spec doc not found: " + spec_path)
-        println("  (set HEXA_AURA_ROOT or run from repo root)")
-        return
-    }
-    println("hexa-aura " + verb + " — spec doc:")
-    println("  " + spec_path)
-    println("")
-    println("--- doc head (first 30 lines) ---")
-    let raw = exec("head -30 " + shq(spec_path) + " 2>&1")
-    println(raw.trim())
-    println("--- end doc head ---")
-    println("")
-    println("__HEXA_AURA_" + verb.to_upper() + "__ PASS")
+fn _hexa_bin() -> str {
+    let real = HOME + "/.hx/packages/hexa/hexa.real"  // @allow-devpath
+    if _file_exists(real) { return real }
+    let h = exec("which hexa 2>/dev/null").trim()  // @allow-bare-exec
+    if h.len() > 0 { return h }
+    return HOME + "/.hx/bin/hexa"  // @allow-devpath
 }
+
+// ─── caveats (raw#10 C3) ───
 
 fn _print_caveats() {
     println("")
-    println("--- caveats (raw#10 C3) ---")
-    println("  1. v0.1.0 ships as 5-doc CHIP-SUBSTRATE bundle. 2 of 5 are")
-    println("     historically restored from canon@{579ab196, ab155706}")
-    println("     to recover richer Korean content (TODO.md §1).")
-    println("  2. cognitive verbs (mind/oracle/telepathy/dream) → hexa-mind (pending).")
-    println("  3. sensory verbs (ear/speak/empath/olfact)       → hexa-senses (pending).")
-    println("  4. working EEG/BMI pipeline                      → hexa-brain (sister).")
-    println("  5. decoder model serving / neuromorphic silicon  → hexa-codex / hexa-chip CLI.")
+    println("--- caveats (raw#10 honest C3) ---")
+    println("  1. v1.0.0 = 4-pillar BCI substrate spec (clip + coil + cortex + safety) + 5-doc atlas")
+    println("     + RSC verify surface. verify/* PASS = n=6 lattice + token consistency + published-ref")
+    println("     parity ARITHMETIC — NOT in-vivo validation, NOT regulatory clearance.")
+    println("  2. F-AURA-1/2/3/4 (15 sub-IDs) all OPEN. See .roadmap.hexa_aura §B.")
+    println("  3. RT-SC ambient-operation claim deferred to dancinlab/hexa-rtsc (coil pillar depends on it).")
+    println("  4. decode ML stack / cognitive verbs → hexa-mind (pending). sensory verbs → hexa-senses (pending).")
+    println("  5. working EEG/BMI pipeline → hexa-brain (sister). decoder serving → hexa-codex CLI.")
+    println("     neuromorphic silicon → hexa-chip CLI. 5G/6G uplink → hexa-grid CLI.")
+    println("  6. 2 of 5 atlas docs (neuro / brain-computer-interface) are historically restored from")
+    println("     canon@{579ab196, ab155706} for richer Korean content (TODO.md §1).")
+    println("  7. NO craniotomy / external-only / NO clinical-trial / NO FDA-KFDA clearance.")
 }
 
-fn cmd_status(a: [str]) {
-    println("hexa-aura " + VERSION + " status — 5-doc post-aural BCI chip substrate (측두골 클립)")
-    println("")
-    println("  scope: CHIP + FORM-FACTOR only")
-    println("    neuro                        579ab196 ✦ KR")
-    println("    brain-computer-interface     ab155706 ✦ KR")
-    println("    hexa-neuromorphic            5458b7d1")
-    println("    l9-field-photon-neuro        5458b7d1")
-    println("    neuroscience                 5458b7d1")
-    println("")
-    println("  ✦ KR = intentionally extracted from a richer pre-migration historical SHA")
-    println("  verdict: BUNDLE_FIRST (5/5 docs are canon copies; 2 are historical)")
-    println("  cross-link: mind→pending · senses→pending · brain→sister · codex/chip/grid→CLI")
-    _print_caveats()
+// ─── subcommand: <pillar> | <atlas> ───
+
+fn _print_doc_headline(label: str, path: str) {
+    if _file_exists(path) == false {
+        println("ERROR: doc not found: " + path)
+        println("  (set HEXA_AURA_ROOT or run from repo root)")
+        return
+    }
+    println("--- doc head (first 36 lines) ---")
+    let raw = exec("head -36 " + shq(path) + " 2>&1")  // @allow-bare-exec
+    println(raw.trim())
+    println("--- end doc head ---")
 }
 
-fn cmd_verb(verb: str) {
-    for row in VERBS {
+fn cmd_pillar(verb: str, a: [str]) {
+    for row in PILLARS {
         if row[0] == verb {
-            _print_spec_headline(verb, _spec_path(row[1], row[2]))
+            let path = HM + "/" + row[1]
+            println("hexa-aura " + verb + " — " + row[3])
+            println("  pillar:    " + row[0] + " (4-pillar post-aural BCI substrate)")
+            println("  falsifier: " + row[2] + " (OPEN — see .roadmap.hexa_aura §B)")
+            let exists = _file_exists(path)
+            if exists { println("  spec:      " + path) } else { println("  spec:      MISSING — expected at " + path) }
+            println("")
+            _print_doc_headline(verb, path)
+            if json_mode(a) {
+                println("{\"hexa_aura\":\"" + VERSION + "\",\"subcmd\":\"" + verb + "\",\"pillar\":\"" + row[0] +
+                        "\",\"falsifier\":\"" + row[2] + "\",\"spec_present\":" + (if exists { "true" } else { "false" }) +
+                        ",\"status\":\"spec_first_rsc\"}")
+            }
+            println("")
+            println("__HEXA_AURA_" + verb.to_upper() + "__ PASS")
+            _audit(verb, "", 0)
+            return
+        }
+    }
+    for row in ATLAS {
+        if row[0] == verb {
+            let path = HM + "/" + row[1]
+            println("hexa-aura " + verb + " — atlas doc (background, not a pillar):")
+            if _file_exists(path) { println("  " + path) } else { println("  MISSING — expected at " + path) }
+            println("")
+            _print_doc_headline(verb, path)
+            println("")
+            println("__HEXA_AURA_" + verb.to_upper() + "__ PASS")
+            _audit(verb, "", 0)
             return
         }
     }
     println("hexa-aura: unknown verb: " + verb)
-    println("(try `hexa-aura status` for the verb list)")
+    println("(try `hexa-aura help` for the verb list)")
+    _audit(verb, "", 2)
     exit(2)
 }
 
-fn cmd_selftest(a: [str]) {
-    println("hexa-aura selftest — 5-doc presence check")
-    println("")
-    let mut count = 0
-    for row in VERBS {
-        let verb = row[0]
-        let path = _spec_path(row[1], row[2])
-        if _file_exists(path) {
-            println("  [PASS] " + verb)
-            count = count + 1
-        } else {
-            println("  [FAIL] " + verb + " (missing: " + path + ")")
-        }
+// ─── subcommand: verify ───
+
+let VERIFY_DIR = HM + "/verify"
+
+let VERIFY_SUBS = [
+    "lattice",
+    "cross-doc",
+    "clip",
+    "coil",
+    "cortex",
+    "safety",
+    "numerics-clip",
+    "numerics-coil",
+    "numerics-cortex",
+    "numerics-safety",
+    "numerics-clip-parity",
+    "numerics-coil-parity",
+    "numerics-cortex-parity",
+    "numerics-safety-parity",
+    "numerics-cross",
+    "numerics-lattice",
+    "falsifier",
+    "lint-numerics",
+    "saturation",
+]
+
+fn _verify_script(sub: str) -> str {
+    if sub == "lattice"                { return VERIFY_DIR + "/lattice_check.hexa" }
+    if sub == "cross-doc"              { return VERIFY_DIR + "/cross_doc_audit.hexa" }
+    if sub == "clip"                   { return VERIFY_DIR + "/calc_clip.hexa" }
+    if sub == "coil"                   { return VERIFY_DIR + "/calc_coil.hexa" }
+    if sub == "cortex"                 { return VERIFY_DIR + "/calc_cortex.hexa" }
+    if sub == "safety"                 { return VERIFY_DIR + "/calc_safety.hexa" }
+    if sub == "numerics-clip"          { return VERIFY_DIR + "/numerics_clip.hexa" }
+    if sub == "numerics-coil"          { return VERIFY_DIR + "/numerics_coil.hexa" }
+    if sub == "numerics-cortex"        { return VERIFY_DIR + "/numerics_cortex.hexa" }
+    if sub == "numerics-safety"        { return VERIFY_DIR + "/numerics_safety.hexa" }
+    if sub == "numerics-clip-parity"   { return VERIFY_DIR + "/numerics_clip_parity.hexa" }
+    if sub == "numerics-coil-parity"   { return VERIFY_DIR + "/numerics_coil_parity.hexa" }
+    if sub == "numerics-cortex-parity" { return VERIFY_DIR + "/numerics_cortex_parity.hexa" }
+    if sub == "numerics-safety-parity" { return VERIFY_DIR + "/numerics_safety_parity.hexa" }
+    if sub == "numerics-cross"         { return VERIFY_DIR + "/numerics_cross_pillar.hexa" }
+    if sub == "numerics-lattice"       { return VERIFY_DIR + "/numerics_lattice_arithmetic.hexa" }
+    if sub == "falsifier"              { return VERIFY_DIR + "/falsifier_check.hexa" }
+    if sub == "lint-numerics"          { return VERIFY_DIR + "/lint_numerics.hexa" }
+    if sub == "saturation"             { return VERIFY_DIR + "/saturation_check.hexa" }
+    return ""
+}
+
+fn _run_one_verifier(sub: str) -> int {
+    let path = _verify_script(sub)
+    if path.len() == 0 {
+        eprintln("hexa-aura verify: unknown sub '" + sub + "'")
+        return 2
     }
+    if _file_exists(path) == false {
+        eprintln("hexa-aura verify: script missing: " + path)
+        return 2
+    }
+    let cmd = "HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 HEXA_AURA_ROOT=" + shq(HM) + " " +
+              shq(_hexa_bin()) + " run " + shq(path)
+    let result = exec_with_status(cmd)
+    let stdout = to_string(result[0])
+    let code = result[1]
+    println(stdout)
+    return code
+}
+
+fn _print_verify_help() {
+    println("hexa-aura verify — n=6 invariant + per-pillar calculator + parity audits (RSC surface)")
     println("")
-    println("docs_present = " + str(count) + " / 5")
-    if count == 5 {
+    println("usage: hexa-aura verify [<sub>]")
+    println("")
+    println("sub:")
+    println("  all                      run every verifier in sequence (default), aggregate exit codes")
+    println("  lattice                  n=6 σ(6)·φ(6) = n·τ(6) = J₂ = 24 closure across roadmap + 4 pillars + 5 atlas docs")
+    println("  cross-doc                cross-pillar anchor agreement (refs, BT-links, lattice tokens, 18-to-0 map)")
+    println("  clip                     T1 — HEXA-MASTOID-CLIP n=6 derivation (3.6 g split, τ=4 anchor, sopfr=5 mm)")
+    println("  coil                     T1 — HEXA-RT-SC-NANOCOIL n=6 derivation (σ²=144 ch/tile, J₂=24/macro, 1296-ch hex)")
+    println("  cortex                   T1 — HEXA-CORTICAL-IF n=6 derivation (σ=12 zones, τ=4 modes, 18-to-0 wearable map)")
+    println("  safety                   T1 — HEXA-CORTICAL-SAFETY n=6 caps (k 1.5 cap, SAR 2 W/kg cap, ΔT 0.5 K cap, FAR 1 % cap, 24 yr)")
+    println("  numerics-clip            T2 — clip math_pure: pair mass vs AirPods band, anchor pressure under capillary occlusion")
+    println("  numerics-coil            T2 — coil math_pure: array factor of σ³=1728-equiv array, pick-up SNR, through-bone atten.")
+    println("  numerics-cortex          T2 — cortex math_pure: channel-count comparisons, Shannon read-channel capacity, 200 Hz rate")
+    println("  numerics-safety          T2 — safety math_pure: Shannon damage line at k=1.5/1.85, SAR form, Pennes-bioheat ΔT, watchdog ROC")
+    println("  numerics-clip-parity     T3 — vs BTE hearing-aid / Shokz / AirPods-Pro / eyeglass-temple / Cochlear-N7 / Google-Glass mass+anchor")
+    println("  numerics-coil-parity     T3 — vs SQUID-MEG / OPM-MEG / TMS figure-8 / Neuralink-N1 / Utah / Stentrode / Argus-Orion")
+    println("  numerics-cortex-parity   T3 — vs cochlear-implant ch / Argus-II + Orion / Flesher-2016 ICMS / BrainGate-handwriting / speech-BCI WPM")
+    println("  numerics-safety-parity   T3 — vs ICNIRP-2020 / IEEE-C95.1-2019 / Shannon-1992 / McCreery / Rossi-2009 / ASTM-F2503 / IEC-60601")
+    println("  numerics-cross           cross-pillar numerical anchor agreement (3.6 g / 144 / 24 / 0.5 K / sopfr=5 across pillars)")
+    println("  numerics-lattice         n=6 lattice float-int precision cross-check (math_pure stability floor)")
+    println("  falsifier                F-AURA-1/2/3/4 closure-pct tracker (3-tier ladder, %)")
+    println("  lint-numerics            meta-lint: every numerics_*.hexa follows the 5 RSC invariants")
+    println("  saturation               RSC sat-1 + sat-2 check → __HEXA_AURA_RSC_SATURATED__ STOP signal")
+    println("")
+    println("exit: 0 all selected PASS · 1 at least one FAIL · 2 bad sub / missing script")
+}
+
+fn cmd_verify(a: [str]) {
+    let mut sub = "all"
+    if a.len() > 2 { sub = a[2] }
+
+    if sub == "--help" || sub == "-h" || sub == "help" { _print_verify_help(); return }
+
+    if sub == "all" {
+        let mut pass = 0
+        let mut fail = 0
+        let mut bad = 0
+        for s in VERIFY_SUBS {
+            let code = _run_one_verifier(s)
+            if code == 0 { pass = pass + 1 }
+            else if code == 1 { fail = fail + 1 }
+            else { bad = bad + 1 }
+        }
+        let total = pass + fail + bad
+        println("")
+        println("========================================================================")
+        println("  hexa-aura verify all — aggregate")
+        println("    PASS:  " + str(pass) + "/" + str(total))
+        println("    FAIL:  " + str(fail) + "/" + str(total))
+        println("    ERROR: " + str(bad)  + "/" + str(total))
+        println("========================================================================")
+        if fail + bad > 0 { _audit("verify all", "", 1); exit(1) }
+        _audit("verify all", "", 0)
+        return
+    }
+
+    let code = _run_one_verifier(sub)
+    _audit("verify " + sub, "", code)
+    if code != 0 { exit(code) }
+}
+
+// ─── subcommand: status ───
+
+fn cmd_status(a: [str]) {
+    if json_mode(a) {
+        let mut js = "{\"hexa_aura\":\"" + VERSION + "\",\"subcmd\":\"status\","
+        js = js + "\"pillars_total\":4,\"atlas_docs\":5,\"falsifiers\":4,\"falsifier_sub_ids\":15,"
+        js = js + "\"verdict\":\"SPEC_FIRST_RSC\","
+        js = js + "\"pillars\":[\"clip:F-AURA-1\",\"coil:F-AURA-2\",\"cortex:F-AURA-3\",\"safety:F-AURA-4\"]"
+        js = js + "}"
+        println(js)
+        return
+    }
+    println("hexa-aura " + VERSION + " status — n=6 post-aural BCI substrate (측두골 클립)")
+    println("")
+    println("  pillar   spec doc                            falsifier   n=6 anchor")
+    println("  -------- ----------------------------------- ----------- --------------------------------------------")
+    println("  clip     clip/doc/mastoid-clip.md            F-AURA-1    φ=2 × σ·n/10 = 3.6 g, τ=4 anchor, sopfr=5 mm bone")
+    println("  coil     coil/doc/rt-sc-nanocoil.md          F-AURA-2    μ=1 μm pitch, σ²=144 ch/tile, J₂=24/macro, n^τ=1296-ch hex")
+    println("  cortex   cortex/doc/cortical-interface.md    F-AURA-3    σ=12 zones, φ=2 dir, τ=4 modes, sopfr=5 ms, 18-to-0 wearables")
+    println("  safety   safety/doc/cortical-safety.md       F-AURA-4    Shannon k cap 1.5, SAR cap φ=2 W/kg, ΔT cap φ/τ=0.5 K, FAR cap μ=1 %, coating φ·σ=24 yr")
+    println("")
+    println("  atlas (5 background docs): neuro · brain-computer-interface · hexa-neuromorphic · l9-field-photon-neuro · neuroscience")
+    println("    (neuro / brain-computer-interface = KR historically restored from canon@{579ab196, ab155706})")
+    println("")
+    println("  verdict: SPEC_FIRST_RSC (4 pillar specs + 5-doc atlas + RSC verify surface; F-AURA-1/2/3/4 all OPEN)")
+    println("  cross-link: mind→pending · senses→pending · brain→sister · rtsc→sister (coil dep) · codex/chip/grid→CLI")
+    println("")
+    println("  inspect:")
+    println("    hexa-aura clip | coil | cortex | safety   (pillar spec head)")
+    println("    hexa-aura neuro | brain_computer_interface | hexa_neuromorphic | l9_field_photon_neuro | neuroscience  (atlas)")
+    println("    hexa-aura selftest                          (4 pillar + 5 atlas presence + n=6 sanity)")
+    println("    hexa-aura verify                            (n=6 invariant + per-pillar + parity audits)")
+    _print_caveats()
+}
+
+// ─── subcommand: selftest ───
+
+fn cmd_selftest(a: [str]) {
+    println("hexa-aura selftest — 4 pillar + 5 atlas presence check + n=6 lattice sanity")
+    println("")
+    let mut pillars_ok = 0
+    for row in PILLARS {
+        let path = HM + "/" + row[1]
+        if _file_exists(path) { println("  [PASS] pillar " + row[0] + " (" + row[2] + ")"); pillars_ok = pillars_ok + 1 }
+        else { println("  [FAIL] pillar " + row[0] + " (missing: " + path + ")") }
+    }
+    let mut atlas_ok = 0
+    for row in ATLAS {
+        let path = HM + "/" + row[1]
+        if _file_exists(path) { println("  [PASS] atlas  " + row[0]); atlas_ok = atlas_ok + 1 }
+        else { println("  [FAIL] atlas  " + row[0] + " (missing: " + path + ")") }
+    }
+    let sigma = 12
+    let tau = 4
+    let phi = 2
+    let n = 6
+    let j2 = 24
+    let lat_ok = (sigma * phi == j2) && (n * tau == j2) && (sigma * phi == n * tau) && (sigma * sigma == 144) && (sigma * sigma * sigma == 1728) && (n * n * n * n == 1296)
+    if lat_ok { println("  [PASS] n=6 lattice: σ·φ = n·τ = J₂ = 24, σ²=144, σ³=1728, n^τ=1296") }
+    else { println("  [FAIL] n=6 lattice arithmetic broken") }
+    let roadmap_ok = _file_exists(HM + "/.roadmap.hexa_aura")
+    if roadmap_ok { println("  [PASS] .roadmap.hexa_aura present") } else { println("  [FAIL] .roadmap.hexa_aura missing") }
+    println("")
+    println("pillars_present = " + str(pillars_ok) + " / 4")
+    println("atlas_present   = " + str(atlas_ok) + " / 5")
+    let all_ok = pillars_ok == 4 && atlas_ok == 5 && lat_ok && roadmap_ok
+    if all_ok {
         println("__HEXA_AURA_SELFTEST__ PASS")
     } else {
         println("__HEXA_AURA_SELFTEST__ FAIL")
-        exit(1)
     }
+    if json_mode(a) {
+        println("{\"hexa_aura\":\"" + VERSION + "\",\"subcmd\":\"selftest\",\"pillars_present\":" + str(pillars_ok) +
+                ",\"atlas_present\":" + str(atlas_ok) + ",\"lattice_ok\":" + (if lat_ok { "true" } else { "false" }) +
+                ",\"verdict\":\"" + (if all_ok { "PASS" } else { "FAIL" }) + "\"}")
+    }
+    _print_caveats()
+    _audit("selftest", "", if all_ok { 0 } else { 1 })
+    if all_ok == false { exit(1) }
 }
+
+// ─── version / help ───
 
 fn cmd_version() {
     println("hexa-aura " + VERSION)
-    println("standalone n=6 post-aural BCI chip substrate (HEXA family — bundled from canon@5458b7d1 + 2 historical SHAs on 2026-05-10)")
+    println("standalone n=6 post-aural BCI chip substrate (HEXA family)")
+    println("4 pillars (clip / coil / cortex / safety) + 5-doc atlas + RSC verify surface (T1 x6 + T2 x4 + T3 x4 + cross-cutters x2 + meta x3)")
     println("license: MIT")
     println("repo:    https://github.com/dancinlab/hexa-aura")
 }
 
 fn cmd_help() {
-    println("hexa-aura " + VERSION + " — standalone post-aural BCI CHIP-substrate CLI")
+    println("hexa-aura " + VERSION + " — standalone n=6 post-aural BCI CHIP-substrate CLI")
     println("")
     println("usage: hexa-aura <subcmd> [flags...]")
     println("")
-    println("verb subcommands (5-doc chip-substrate bundle):")
-    for row in VERBS {
-        println("  " + row[0])
-    }
+    println("pillar subcommands (4-pillar post-aural BCI substrate — n=6 σ·φ = n·τ = J₂ = 24):")
+    println("  clip            HEXA-MASTOID-CLIP    — form-factor (3.6 g/side, τ=4 anchor, sopfr=5 mm bone)   [F-AURA-1]")
+    println("  coil            HEXA-RT-SC-NANOCOIL  — transducer (μ=1 μm pitch, σ²=144 ch/tile, J₂=24/macro)  [F-AURA-2]")
+    println("  cortex          HEXA-CORTICAL-IF     — cortical I/O (σ=12 zones, φ=2 dir, τ=4 modes; 18-to-0)   [F-AURA-3]")
+    println("  safety          HEXA-CORTICAL-SAFETY — caps (Shannon k 1.5, SAR 2 W/kg, ΔT 0.5 K, FAR 1 %, MRI-cond) [F-AURA-4]")
     println("")
-    println("utility:")
-    println("  status          5-doc table + cross-link + caveats")
-    println("  selftest        5-doc presence check")
+    println("atlas verbs (5 background docs):")
+    println("  neuro · brain_computer_interface · hexa_neuromorphic · l9_field_photon_neuro · neuroscience")
     println("")
-    println("global flags: --version, --help, -h")
+    println("utility subcommands:")
+    println("  status          4-pillar + 5-atlas table + verdict + cross-link + caveats")
+    println("  selftest        4 pillar + 5 atlas presence + n=6 lattice sanity")
+    println("  verify [<sub>]  RSC surface — sub: all (default) | lattice | cross-doc | clip | coil | cortex | safety")
+    println("                       | numerics-clip | numerics-coil | numerics-cortex | numerics-safety")
+    println("                       | numerics-clip-parity | numerics-coil-parity | numerics-cortex-parity | numerics-safety-parity")
+    println("                       | numerics-cross | numerics-lattice | falsifier | lint-numerics | saturation")
+    println("")
+    println("global flags: --version, --help, -h, --json")
     println("env:          HEXA_AURA_ROOT (override repo root)")
     println("")
-    println("cross-link (call sibling repo / CLI directly):")
-    println("  cognitive verbs       → hexa-mind  (pending)")
-    println("  sensory verbs         → hexa-senses (pending)")
-    println("  working EEG/BMI       → hexa-brain (sister)")
-    println("  decoder model serving → hexa-codex serve")
-    println("  neuromorphic silicon  → hexa-chip neuromorphic")
-    println("  5G/6G uplink          → hexa-grid v2x")
+    println("cross-link (call sibling repo / CLI directly — DO NOT proxy through hexa-aura):")
+    println("  cognitive verbs / BCI ML stack → hexa-mind  (pending)")
+    println("  sensory verbs                  → hexa-senses (pending)")
+    println("  working EEG/BMI pipeline        → hexa-brain (sister)")
+    println("  RT-SC ambient SC (coil dep)     → hexa-rtsc  (sister)")
+    println("  decoder model serving           → hexa-codex serve")
+    println("  neuromorphic silicon            → hexa-chip neuromorphic")
+    println("  5G/6G uplink for cloud sync     → hexa-grid v2x")
+    println("")
+    println("cost (Mac local): $0 — spec read + CLI dispatcher; verify/* are pure-hexa local audits.")
+    println("backend specs: " + HM)
 }
+
+// ─── main ───
 
 fn main(args: [str]) {
     if args.len() < 2 { cmd_help(); return }
     let sub = args[1]
 
-    if sub == "--version" || sub == "-v" { cmd_version(); return }
+    if sub == "--version" || sub == "-v" || sub == "version" { cmd_version(); return }
     if sub == "--help"    || sub == "-h" { cmd_help();    return }
+    if sub == "help"      { cmd_help();    return }
 
     if sub == "status"   { cmd_status(args);   return }
     if sub == "selftest" { cmd_selftest(args); return }
-    if sub == "help"     { cmd_help();         return }
+    if sub == "verify"   { cmd_verify(args);   return }
 
-    cmd_verb(sub)
+    cmd_pillar(sub, args)
 }

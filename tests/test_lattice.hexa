@@ -1,0 +1,53 @@
+#!hexa strict
+// ──────────────────────────────────────────────────────────────────────────
+// hexa-aura/tests/test_lattice.hexa — n=6 lattice closure regression.
+//
+// @allow-relop-banned-file
+// @allow-bare-exec-file
+// @allow-silent-exit-file
+//
+// Wraps verify/lattice_check.hexa with an explicit per-test PASS contract:
+// the n=6 invariant audit must exit 0 and emit `__HEXA_AURA_LATTICE__ PASS`.
+// Also re-asserts the closure σ·φ = n·τ = J₂ = 24 + the σ-powers directly,
+// so the test fails fast even if the verify script is missing.
+//
+// Cost: $0.
+// ──────────────────────────────────────────────────────────────────────────
+
+let HOME = env("HOME")
+fn _hexa_bin() -> str {
+    let real = HOME + "/.hx/packages/hexa/hexa.real"  // @allow-devpath
+    if file_exists(real) { return real }
+    let h = exec("which hexa 2>/dev/null").trim()  // @allow-bare-exec
+    if h.len() > 0 { return h }
+    return HOME + "/.hx/bin/hexa"  // @allow-devpath
+}
+
+fn main() {
+    let mut root = env("HEXA_AURA_ROOT")
+    if root.len() == 0 { root = exec("pwd").trim() }  // @allow-bare-exec
+
+    // direct arithmetic guard (fails fast)
+    let sigma = 12
+    let tau = 4
+    let phi = 2
+    let n = 6
+    let j2 = 24
+    let ok_lat = (sigma * phi == j2) && (n * tau == j2) && (sigma * phi == n * tau) && (sigma * sigma == 144) && (sigma * sigma * sigma == 1728) && (n * n * n * n == 1296) && (sigma - phi == 10)
+    if ok_lat == false { println("test_lattice: FAIL — n=6 closure arithmetic broken"); exit(1) }
+    println("test_lattice: direct guard OK — σ·φ = n·τ = J₂ = 24, σ²=144, σ³=1728, n^τ=1296, σ-φ=10")
+
+    let script = root + "/verify/lattice_check.hexa"
+    if file_exists(script) == false { println("test_lattice: FAIL — verify/lattice_check.hexa missing"); exit(1) }
+    let cmd = "HEXA_AURA_ROOT=\"" + root + "\" \"" + _hexa_bin() + "\" run \"" + script + "\" 2>&1"
+    let res = exec_with_status(cmd)
+    let out = to_string(res[0])
+    let code = res[1]
+    if code == 0 && out.find("__HEXA_AURA_LATTICE__ PASS") > -1 {
+        println("test_lattice: PASS — verify/lattice_check.hexa exit 0 + sentinel")
+        return
+    }
+    println("test_lattice: FAIL — verify/lattice_check.hexa code=" + str(code))
+    println(out.trim())
+    exit(1)
+}

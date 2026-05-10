@@ -1,55 +1,72 @@
 #!hexa strict
-// tests/test_selftest.hexa — full 5-doc selftest harness for hexa-aura
+// ──────────────────────────────────────────────────────────────────────────
+// hexa-aura/tests/test_selftest.hexa — 4-pillar + 5-atlas presence + dispatcher selftest.
 //
-// Pass criterion: __HEXA_AURA_SELFTEST__ PASS sentinel present
-// (and 5 docs accounted for under docs/).
+// @allow-relop-banned-file
+// @allow-bare-exec-file
+// @allow-silent-exit-file
 //
-// Cost: $0 (orchestrates the placeholder dispatcher; no numerical work).
+// Pass criterion:
+//   · all 4 pillar spec docs present  (clip/coil/cortex/safety)
+//   · all 5 atlas docs present        (neuro/bci/neuromorphic/l9/neuroscience)
+//   · .roadmap.hexa_aura present
+//   · the CLI dispatcher emits `__HEXA_AURA_SELFTEST__ PASS`
+//
+// Cost: $0 (orchestrates the dispatcher; no numerical work).
+// ──────────────────────────────────────────────────────────────────────────
 
-let VERB_PARENT = "docs"
-let VERB_DOCS: [str] = [
-    "neuro.md",
-    "brain-computer-interface.md",
-    "hexa-neuromorphic.md",
-    "l9-field-photon-neuro.md",
-    "neuroscience.md",
+let HOME = env("HOME")
+
+let PILLAR_DOCS = [
+    "clip/doc/mastoid-clip.md",
+    "coil/doc/rt-sc-nanocoil.md",
+    "cortex/doc/cortical-interface.md",
+    "safety/doc/cortical-safety.md",
+]
+let ATLAS_DOCS = [
+    "docs/neuro.md",
+    "docs/brain-computer-interface.md",
+    "docs/hexa-neuromorphic.md",
+    "docs/l9-field-photon-neuro.md",
+    "docs/neuroscience.md",
 ]
 
-fn _file_exists(p: str) -> bool {
-    let r = exec("[ -f \"" + p + "\" ] && echo yes || echo no").trim()
-    return r == "yes"
+fn _exists(p: str) -> bool { return file_exists(p) }
+fn _hexa_bin() -> str {
+    let real = HOME + "/.hx/packages/hexa/hexa.real"  // @allow-devpath
+    if file_exists(real) { return real }
+    let h = exec("which hexa 2>/dev/null").trim()  // @allow-bare-exec
+    if h.len() > 0 { return h }
+    return HOME + "/.hx/bin/hexa"  // @allow-devpath
 }
 
 fn main() {
     let mut root = env("HEXA_AURA_ROOT")
-    if root.len() == 0 { root = exec("pwd").trim() }
+    if root.len() == 0 { root = exec("pwd").trim() }  // @allow-bare-exec
 
     let mut missing: [str] = []
-    for d in VERB_DOCS {
-        if _file_exists(root + "/" + VERB_PARENT + "/" + d) == false { missing = missing + [d] }
-    }
-    let n_present = 5 - missing.len()
-    println("test_selftest: docs present = " + str(n_present) + " / 5")
+    for d in PILLAR_DOCS { if _exists(root + "/" + d) == false { missing = missing + [d] } }
+    for d in ATLAS_DOCS  { if _exists(root + "/" + d) == false { missing = missing + [d] } }
+    if _exists(root + "/.roadmap.hexa_aura") == false { missing = missing + [".roadmap.hexa_aura"] }
+
+    let n_present = 4 + 5 + 1 - missing.len()
+    println("test_selftest: docs+roadmap present = " + str(n_present) + " / 10  (4 pillar + 5 atlas + roadmap)")
     if missing.len() > 0 {
-        println("test_selftest: FAIL — missing docs:")
+        println("test_selftest: FAIL — missing:")
         for m in missing { println("  - " + m) }
         exit(1)
     }
 
     let cli = root + "/cli/hexa-aura.hexa"
-    let cli_ok = exec("[ -f \"" + cli + "\" ] && echo y || echo n").trim()
-    if cli_ok != "y" {
-        println("test_selftest: FAIL — cli/hexa-aura.hexa missing")
-        exit(1)
-    }
+    if _exists(cli) == false { println("test_selftest: FAIL — cli/hexa-aura.hexa missing"); exit(1) }
 
-    let cmd = "HEXA_AURA_ROOT=\"" + root + "\" hexa run \"" + cli + "\" selftest 2>&1"
-    let raw = exec(cmd)
-    if raw.contains("__HEXA_AURA_SELFTEST__ PASS") {
-        println("test_selftest: PASS — 5/5 docs + dispatcher sentinel OK")
+    let cmd = "HEXA_AURA_ROOT=\"" + root + "\" \"" + _hexa_bin() + "\" run \"" + cli + "\" selftest 2>&1"
+    let raw = exec(cmd)  // @allow-bare-exec
+    if raw.find("__HEXA_AURA_SELFTEST__ PASS") > -1 {
+        println("test_selftest: PASS — 4 pillar + 5 atlas + roadmap + dispatcher sentinel OK")
         return
     }
-    println("test_selftest: FAIL — sentinel not found")
+    println("test_selftest: FAIL — dispatcher sentinel not found")
     println(raw.trim())
     exit(1)
 }

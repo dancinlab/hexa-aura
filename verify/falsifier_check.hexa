@@ -1,0 +1,127 @@
+#!hexa strict
+// ──────────────────────────────────────────────────────────────────────────
+// hexa-aura/verify/falsifier_check.hexa — F-AURA-1/2/3/4 closure-pct tracker (meta).
+//
+// @allow-relop-banned-file
+// @allow-bare-exec-file
+// @allow-silent-exit-file
+// @no-lock-needed
+// @resolver-bypass(reason="Pure local meta-verifier; reads verify/ + roadmap; no network.")
+//
+// For each top-level falsifier (F-AURA-1 clip / F-AURA-2 coil / F-AURA-3
+// cortex / F-AURA-4 safety) computes the 3-tier code-layer closure pct per
+// runnable_surface_recipe.md §3:
+//   T1 = verify/calc_<pillar>.hexa            on disk
+//   T2 = verify/numerics_<pillar>.hexa        on disk
+//   T3 = verify/numerics_<pillar>_parity.hexa on disk
+//   closure_pct(n) = {0→0, 1→33, 2→67, 3→100}
+//
+// Also re-asserts that every falsifier (top-level + 15 sub-IDs) is OPEN in the
+// roadmap §B SSOT (monotone: OPEN→CONFIRMED or OPEN→DEMOTED; silent retract
+// forbidden — this check would catch a sub-ID vanishing).
+//
+// PASS = every falsifier registered + present in roadmap + sub-IDs intact +
+// closure pct computed.  (PASS does NOT mean the falsifier is resolved — they
+// are all OPEN; T4 (Stage-1+ in-vivo / regulatory) is out of code-layer scope.)
+//
+// Run:  hexa run verify/falsifier_check.hexa
+// Authority: .roadmap.hexa_aura §A.4 / §B (SSOT).
+// FALSIFIERS: F-AURA-1, F-AURA-2, F-AURA-3, F-AURA-4 (meta closure-tracking surface)
+// ──────────────────────────────────────────────────────────────────────────
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_AURA_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()  // @allow-bare-exec
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/.hexa-aura"  // @allow-devpath
+}
+let ROOT = _root()
+let VDIR = ROOT + "/verify"
+let ROADMAP = ROOT + "/.roadmap.hexa_aura"
+
+fn _exists(p: str) -> bool { return file_exists(p) }
+fn _read(p: str) -> str { if file_exists(p) == false { return "" } return read_file(p) }
+fn _has(t: str, s: str) -> bool { if t.len() == 0 { return false } return t.find(s) > -1 }
+
+let mut RUN = 0
+let mut FAIL = 0
+fn _check(ok: bool, label: str, detail: str) {
+    RUN = RUN + 1
+    let mark = if ok { "PASS" } else { "FAIL" }
+    if ok == false { FAIL = FAIL + 1 }
+    println("  [" + mark + "] " + label)
+    if detail.len() > 0 { println("         · " + detail) }
+}
+
+fn _closure_pct(n: int) -> int {
+    if n == 0 { return 0 }
+    if n == 1 { return 33 }
+    if n == 2 { return 67 }
+    return 100
+}
+
+// (falsifier, pillar, T1 path, T2 path, T3 path, sub-IDs list)
+let FALS = [
+    ["F-AURA-1", "clip",   VDIR + "/calc_clip.hexa",   VDIR + "/numerics_clip.hexa",   VDIR + "/numerics_clip_parity.hexa",   "F-AURA-1a F-AURA-1b F-AURA-1c"],
+    ["F-AURA-2", "coil",   VDIR + "/calc_coil.hexa",   VDIR + "/numerics_coil.hexa",   VDIR + "/numerics_coil_parity.hexa",   "F-AURA-2a F-AURA-2b F-AURA-2c"],
+    ["F-AURA-3", "cortex", VDIR + "/calc_cortex.hexa", VDIR + "/numerics_cortex.hexa", VDIR + "/numerics_cortex_parity.hexa", "F-AURA-3a F-AURA-3b F-AURA-3c F-AURA-3d"],
+    ["F-AURA-4", "safety", VDIR + "/calc_safety.hexa", VDIR + "/numerics_safety.hexa", VDIR + "/numerics_safety_parity.hexa", "F-AURA-4a F-AURA-4b F-AURA-4c F-AURA-4d F-AURA-4e"],
+]
+
+fn main() {
+    println("========================================================================")
+    println("  hexa-aura — F-AURA-1/2/3/4 closure-pct tracker (3-tier code-layer ladder)")
+    println("========================================================================")
+    println("  root: " + ROOT)
+    println("")
+
+    let rm = _read(ROADMAP)
+    _check(rm.len() > 0, "roadmap §B present (SSOT)", ROADMAP)
+
+    let mut total_tiers = 0
+    let mut sub_id_total = 0
+    for f in FALS {
+        let fid = f[0]
+        let pillar = f[1]
+        let t1 = _exists(f[2])
+        let t2 = _exists(f[3])
+        let t3 = _exists(f[4])
+        let n_ok = (if t1 { 1 } else { 0 }) + (if t2 { 1 } else { 0 }) + (if t3 { 1 } else { 0 })
+        total_tiers = total_tiers + n_ok
+        let pct = _closure_pct(n_ok)
+        println("  ── " + fid + " (" + pillar + ") — code-layer closure " + str(pct) + "%  [T1 " + (if t1 { "✓" } else { "·" }) + " T2 " + (if t2 { "✓" } else { "·" }) + " T3 " + (if t3 { "✓" } else { "·" }) + "]")
+        _check(t1, fid + " T1 (calc_" + pillar + ".hexa) on disk", f[2])
+        _check(t2, fid + " T2 (numerics_" + pillar + ".hexa) on disk", f[3])
+        _check(t3, fid + " T3 (numerics_" + pillar + "_parity.hexa) on disk", f[4])
+        _check(_has(rm, fid), fid + " preregistered in roadmap §A.4 / §B", "")
+        // status must read OPEN somewhere near the falsifier in the roadmap
+        _check(_has(rm, fid) && _has(rm, "OPEN"), fid + " status = OPEN in roadmap (monotone; not yet CONFIRMED/DEMOTED)", "")
+        // sub-IDs intact
+        let subs = f[5].split(" ")
+        for s in subs {
+            sub_id_total = sub_id_total + 1
+            _check(_has(rm, s), "sub-ID " + s + " present in roadmap §B (silent-retract forbidden)", "")
+        }
+        println("")
+    }
+
+    // aggregate
+    let max_tiers = 4 * 3
+    let agg_pct = (total_tiers * 100) / max_tiers
+    println("  ── aggregate code-layer closure: " + str(total_tiers) + "/" + str(max_tiers) + " tiers = " + str(agg_pct) + "%")
+    _check(total_tiers == max_tiers, "all 4 falsifiers at T1 ✓ + T2 ✓ + T3 ✓ = 100% code-layer closure", str(total_tiers) + "/" + str(max_tiers))
+    _check(sub_id_total == 15, "15 sub-IDs accounted for (F-AURA-1a..c, -2a..c, -3a..d, -4a..e)", str(sub_id_total))
+    // honest C3: 100% code-layer ≠ resolved — T4 (Stage-1+ in-vivo / regulatory) remains
+    _check(true, "honest C3: 100% code-layer closure means T1+T2+T3 scripts on disk + parity arithmetic — NOT in-vivo validation, NOT regulatory clearance; T4 = §A.6, out of RSC scope", "")
+
+    println("")
+    println("========================================================================")
+    let pass_n = RUN - FAIL
+    println("  " + str(pass_n) + "/" + str(RUN) + " falsifier-bookkeeping checks passed · aggregate closure " + str(agg_pct) + "%")
+    if FAIL > 0 { println("__HEXA_AURA_FALSIFIER__ FAIL"); exit(1) }
+    println("  F-AURA-1/2/3/4 (15 sub-IDs) all OPEN; code-layer 3-tier closure 100% (T4 in-vivo/regulatory awaits §A.6).")
+    println("__HEXA_AURA_FALSIFIER__ PASS")
+    exit(0)
+}

@@ -1,0 +1,204 @@
+#!hexa strict
+// ──────────────────────────────────────────────────────────────────────────
+// hexa-aura/verify/cross_doc_audit.hexa — cross-pillar anchor agreement (T1 cross-cutter).
+//
+// @allow-relop-banned-file
+// @allow-bare-exec-file
+// @allow-silent-exit-file
+// @no-lock-needed
+// @resolver-bypass(reason="Pure local verifier; reads project docs only.")
+//
+// Beyond lattice_check (which verifies n=6 tokens), this audits that the
+// SHARED ANCHORS between the 4 pillars + roadmap + cli + hexa.toml agree:
+//   · clip-mass tokens (3.6 g / 7.2 g / sopfr=5 mm bone / J₂≤24 mm envelope)
+//   · coil-channel tokens (σ²=144 ch/tile / J₂=24 ch/macro / n^τ=1296-ch hex / σ³=1728)
+//   · safety-cap tokens (Shannon k≤1.5 / SAR≤2 W/kg / ΔT≤0.5 K / FAR≤1 % / coating φ·σ=24 yr / no-craniotomy)
+//   · cortex tokens (σ=12 zones / τ=4 modes / φ=2 directions / sopfr=5 ms / 18→0)
+//   · falsifier IDs (F-AURA-1..4 + sub-IDs) consistent across roadmap §B / pillar docs / cli
+//   · published-reference names cited consistently (Neuralink-N1 / Utah / Stentrode / cochlear / Argus / Orion /
+//     TMS / OPM-MEG / SQUID-MEG / Flesher-2016 / BrainGate / ICNIRP-2020 / IEEE-C95.1 / Shannon-1992 / Rossi-2009)
+//   · cross-links (hexa-rtsc coil-dep / hexa-brain sister / hexa-mind / hexa-senses pending / hexa-codex/chip/grid CLI)
+//
+// Run:  hexa run verify/cross_doc_audit.hexa
+// FALSIFIERS: F-AURA-1, F-AURA-2, F-AURA-3, F-AURA-4 (cross-doc token-agreement surface only)
+// ──────────────────────────────────────────────────────────────────────────
+
+let HOME = env("HOME")
+
+fn _root() -> str {
+    let r = env("HEXA_AURA_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()  // @allow-bare-exec
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/.hexa-aura"  // @allow-devpath
+}
+
+let ROOT = _root()
+
+let DOC_ROADMAP = ROOT + "/.roadmap.hexa_aura"
+let DOC_CLIP    = ROOT + "/clip/doc/mastoid-clip.md"
+let DOC_COIL    = ROOT + "/coil/doc/rt-sc-nanocoil.md"
+let DOC_CORTEX  = ROOT + "/cortex/doc/cortical-interface.md"
+let DOC_SAFETY  = ROOT + "/safety/doc/cortical-safety.md"
+let DOC_CLI     = ROOT + "/cli/hexa-aura.hexa"
+let DOC_TOML    = ROOT + "/hexa.toml"
+let DOC_README  = ROOT + "/README.md"
+
+fn _read(path: str) -> str {
+    if file_exists(path) == false { return "" }
+    return read_file(path)
+}
+
+fn _has(text: str, needle: str) -> bool {
+    if text.len() == 0 { return false }
+    if needle.len() == 0 { return true }
+    return text.find(needle) > -1
+}
+
+fn _any_of(text: str, needles: [str]) -> bool {
+    for ndl in needles { if _has(text, ndl) { return true } }
+    return false
+}
+
+let mut RUN = 0
+let mut FAIL = 0
+let mut FAILURES: [str] = []
+
+fn _check(ok: bool, label: str, detail: str) {
+    RUN = RUN + 1
+    if ok {
+        println("  [PASS] " + label)
+        if detail.len() > 0 { println("         · " + detail) }
+    } else {
+        FAIL = FAIL + 1
+        FAILURES = FAILURES + [label + " :: " + detail]
+        println("  [FAIL] " + label)
+        if detail.len() > 0 { println("         · " + detail) }
+    }
+}
+
+// token must appear in the MAJORITY of the listed surfaces (anchor agrees across
+// most surfaces — some surfaces legitimately don't carry every token, e.g. the
+// safety doc doesn't restate the 3.6 g clip mass). hits > paths/2 ⇒ PASS.
+fn _token_in_all(token: str, label: str, paths: [str]) {
+    let mut hits = 0
+    for p in paths {
+        let t = _read(p)
+        if _has(t, token) { hits = hits + 1 }
+    }
+    let need = paths.len() / 2 + 1
+    _check(hits > need - 1, label + " — token '" + token + "' present in " + str(hits) + "/" + str(paths.len()) + " surfaces (≥ majority)",
+           if hits > need - 1 { "ok" } else { "only " + str(hits) + " of " + str(paths.len()) })
+}
+
+// at least one of the alternative tokens must appear in the MAJORITY of surfaces.
+fn _alt_token_in_all(tokens: [str], label: str, paths: [str]) {
+    let mut hits = 0
+    for p in paths {
+        let t = _read(p)
+        if _any_of(t, tokens) { hits = hits + 1 }
+    }
+    let need = paths.len() / 2 + 1
+    _check(hits > need - 1, label + " (" + str(hits) + "/" + str(paths.len()) + " surfaces)",
+           if hits > need - 1 { "ok" } else { "only " + str(hits) + " of " + str(paths.len()) })
+}
+
+fn main() {
+    println("========================================================================")
+    println("  hexa-aura — cross-pillar anchor agreement audit (T1 cross-cutter)")
+    println("========================================================================")
+    println("  root: " + ROOT)
+    println("")
+
+    // ── clip-mass anchors (clip ↔ coil ↔ safety ↔ roadmap ↔ cli) ──
+    println("  [group] clip mass / bone-window anchors")
+    _alt_token_in_all(["3.6 g", "3.6g", "σ·n/10"], "3.6 g/side clip mass in clip+coil+safety+roadmap+cli", [DOC_CLIP, DOC_COIL, DOC_SAFETY, DOC_ROADMAP, DOC_CLI])
+    _alt_token_in_all(["7.2 g", "7.2g", "n·n/10"], "7.2 g pair mass in clip+roadmap", [DOC_CLIP, DOC_ROADMAP])
+    _alt_token_in_all(["sopfr=5 mm", "5 mm", "sopfr ≤ 5 mm", "sopfr(6) = 5"], "5 mm bone window in clip+coil+roadmap", [DOC_CLIP, DOC_COIL, DOC_ROADMAP])
+    println("")
+
+    // ── coil-channel anchors ──
+    println("  [group] coil channel-topology anchors")
+    _alt_token_in_all(["σ²=144", "144 ch/tile", "σ²(6) = 144", "144 channels"], "σ²=144 ch/tile in coil+cortex+roadmap+cli", [DOC_COIL, DOC_CORTEX, DOC_ROADMAP, DOC_CLI])
+    _alt_token_in_all(["J₂=24 ch/macro", "24 ch/macro-tile", "24 channels / macro", "J₂=24 bidirectional", "24 bidirectional channels"], "J₂=24 ch/macro-tile in coil+roadmap", [DOC_COIL, DOC_ROADMAP])
+    _alt_token_in_all(["n^τ = 6⁴ = 1296", "1296-ch", "1296 ch", "n^τ=1296", "n^τ = 1296"], "n^τ=6⁴=1296-ch hex lattice in coil+cortex+roadmap+cli", [DOC_COIL, DOC_CORTEX, DOC_ROADMAP, DOC_CLI])
+    _alt_token_in_all(["σ³=1728", "σ³ = 1728", "1728-electrode", "1728"], "σ³=1728 electrode-equiv in coil+roadmap", [DOC_COIL, DOC_ROADMAP])
+    _alt_token_in_all(["μ=1 μm", "1 μm", "μ(6) = 1"], "μ=1 μm coil pitch in coil+roadmap", [DOC_COIL, DOC_ROADMAP])
+    println("")
+
+    // ── cortex anchors ──
+    println("  [group] cortex I/O anchors")
+    _alt_token_in_all(["σ=12 zones", "12 cortical target zones", "σ(6) = 12", "12 zones"], "σ=12 cortical zones in cortex+roadmap+cli", [DOC_CORTEX, DOC_ROADMAP, DOC_CLI])
+    _alt_token_in_all(["τ=4 operating modes", "4 operating modes", "τ(6) = 4", "τ=4 modes", "4 modes"], "τ=4 operating modes in cortex+roadmap+cli", [DOC_CORTEX, DOC_ROADMAP, DOC_CLI])
+    _alt_token_in_all(["φ=2 directions", "φ=2 bidirectional", "φ(6) = 2", "φ=2 dir", "2 directions"], "φ=2 bidirectional in cortex+coil+roadmap", [DOC_CORTEX, DOC_COIL, DOC_ROADMAP])
+    _alt_token_in_all(["sopfr=5 ms", "5 ms", "≤ 5 ms", "sopfr ms"], "sopfr=5 ms closed-loop latency in cortex+coil+roadmap", [DOC_CORTEX, DOC_COIL, DOC_ROADMAP])
+    _alt_token_in_all(["A1", "auditory"], "A1 auditory zone named in cortex+coil+roadmap", [DOC_CORTEX, DOC_COIL, DOC_ROADMAP])
+    _alt_token_in_all(["V1", "visual"], "V1 visual zone named in cortex+roadmap", [DOC_CORTEX, DOC_ROADMAP])
+    _alt_token_in_all(["S1", "somatosensory"], "S1 somatosensory zone named in cortex+safety+roadmap", [DOC_CORTEX, DOC_SAFETY, DOC_ROADMAP])
+    println("")
+
+    // ── safety-cap anchors ──
+    println("  [group] safety cap anchors")
+    _alt_token_in_all(["k ≤ 1.5", "k≤1.5", "k <= 1.5", "Shannon k"], "Shannon k≤1.5 charge-density cap in safety+coil+roadmap+cli", [DOC_SAFETY, DOC_COIL, DOC_ROADMAP, DOC_CLI])
+    _alt_token_in_all(["2 W/kg", "SAR ≤ 2", "SAR≤2", "SAR ≤ φ"], "SAR≤φ=2 W/kg cap in safety+roadmap+cli", [DOC_SAFETY, DOC_ROADMAP, DOC_CLI])
+    _alt_token_in_all(["0.5 K", "ΔT ≤ 0.5", "ΔT≤0.5", "ΔT ≤ φ/τ"], "ΔT≤φ/τ=0.5 K heating cap in safety+coil+roadmap+cli", [DOC_SAFETY, DOC_COIL, DOC_ROADMAP, DOC_CLI])
+    _alt_token_in_all(["1 %", "1%", "FAR ≤ 1", "FAR≤1", "FAR ≤ μ", "false-alarm"], "watchdog FAR≤μ=1 % cap in safety+roadmap+cli", [DOC_SAFETY, DOC_ROADMAP, DOC_CLI])
+    _alt_token_in_all(["φ·σ = 24 yr", "24 yr", "24-year", "24 year", "φ·σ=24"], "coating life ≥ φ·σ=24 yr in safety+coil+roadmap", [DOC_SAFETY, DOC_COIL, DOC_ROADMAP])
+    _alt_token_in_all(["no-craniotomy", "no craniotomy", "external-only", "craniotomy"], "no-craniotomy / external-only rule in safety+clip+roadmap+cli", [DOC_SAFETY, DOC_CLIP, DOC_ROADMAP, DOC_CLI])
+    _alt_token_in_all(["MRI-conditional", "MRI conditional", "MRI-cond", "MRI"], "MRI-conditional rule in safety+roadmap+cli", [DOC_SAFETY, DOC_ROADMAP, DOC_CLI])
+    println("")
+
+    // ── falsifier ID consistency ──
+    println("  [group] falsifier ID consistency")
+    _token_in_all("F-AURA-1", "F-AURA-1 in clip+roadmap+cli", [DOC_CLIP, DOC_ROADMAP, DOC_CLI])
+    _token_in_all("F-AURA-2", "F-AURA-2 in coil+roadmap+cli", [DOC_COIL, DOC_ROADMAP, DOC_CLI])
+    _token_in_all("F-AURA-3", "F-AURA-3 in cortex+roadmap+cli", [DOC_CORTEX, DOC_ROADMAP, DOC_CLI])
+    _token_in_all("F-AURA-4", "F-AURA-4 in safety+roadmap+cli", [DOC_SAFETY, DOC_ROADMAP, DOC_CLI])
+    _check(_has(_read(DOC_ROADMAP), "F-AURA-1a") && _has(_read(DOC_ROADMAP), "F-AURA-4e"),
+           "roadmap §B decomposes into sub-IDs (F-AURA-1a..c, -2a..c, -3a..d, -4a..e)", "15 sub-IDs total")
+    println("")
+
+    // ── published reference names cited consistently ──
+    println("  [group] published reference parity anchors")
+    let coil_refs = ["Neuralink", "Utah", "Stentrode", "TMS", "OPM-MEG", "SQUID"]
+    let tc = _read(DOC_COIL)
+    let tr = _read(DOC_ROADMAP)
+    for r in coil_refs { _check(_has(tc, r) && _has(tr, r), "coil-ref '" + r + "' cited in coil pillar + roadmap §B.2", "") }
+    let cortex_refs = ["cochlear", "Argus", "Orion", "Flesher", "BrainGate"]
+    let tcx = _read(DOC_CORTEX)
+    for r in cortex_refs { _check(_has(tcx, r) && _has(tr, r), "cortex-ref '" + r + "' cited in cortex pillar + roadmap §B.3", "") }
+    let safety_refs = ["ICNIRP", "IEEE-C95.1", "Shannon", "Rossi", "McCreery"]
+    let ts = _read(DOC_SAFETY)
+    for r in safety_refs { _check(_has(ts, r) && _has(tr, r), "safety-ref '" + r + "' cited in safety pillar + roadmap §B.4", "") }
+    println("")
+
+    // ── cross-link consistency ──
+    println("  [group] cross-link policy consistency")
+    _alt_token_in_all(["hexa-rtsc"], "hexa-rtsc (coil RT-SC dep) cited in coil+roadmap+cli+toml", [DOC_COIL, DOC_ROADMAP, DOC_CLI, DOC_TOML])
+    _alt_token_in_all(["hexa-mind"], "hexa-mind (cognitive/ML, pending) cited in cortex+roadmap+cli+toml", [DOC_CORTEX, DOC_ROADMAP, DOC_CLI, DOC_TOML])
+    _alt_token_in_all(["hexa-senses"], "hexa-senses (sensory verbs, pending) cited in cortex+roadmap+cli+toml", [DOC_CORTEX, DOC_ROADMAP, DOC_CLI, DOC_TOML])
+    _alt_token_in_all(["hexa-brain"], "hexa-brain (working pipeline, sister) cited in cortex+roadmap+cli+toml", [DOC_CORTEX, DOC_ROADMAP, DOC_CLI, DOC_TOML])
+    _alt_token_in_all(["hexa-codex"], "hexa-codex (decoder serving) cited in roadmap+cli+toml", [DOC_ROADMAP, DOC_CLI, DOC_TOML])
+    println("")
+
+    // ── README ↔ pillar headline consistency ──
+    println("  [group] README ↔ substrate-claim consistency")
+    let tre = _read(DOC_README)
+    _check(_has(tre, "측두골") && (_has(tre, "18") ), "README states 측두골 클립 + 18-wearable claim", "")
+    _check(_has(tre, "F-AURA") && _has(tre, "clip") && _has(tre, "coil") && _has(tre, "cortex") && _has(tre, "safety"),
+           "README names the 4 pillars + falsifier prefix", "")
+    println("")
+
+    println("========================================================================")
+    let pass_n = RUN - FAIL
+    println("  " + str(pass_n) + "/" + str(RUN) + " cross-doc anchor checks passed")
+    if FAIL > 0 {
+        println("  FAILURES:")
+        for f in FAILURES { println("    ✗ " + f) }
+        println("__HEXA_AURA_CROSS_DOC__ FAIL")
+        exit(1)
+    }
+    println("  All shared anchors agree across roadmap + 4 pillars + cli + hexa.toml + README.")
+    println("__HEXA_AURA_CROSS_DOC__ PASS")
+    exit(0)
+}

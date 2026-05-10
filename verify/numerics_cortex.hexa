@@ -1,0 +1,136 @@
+#!hexa strict
+// ──────────────────────────────────────────────────────────────────────────
+// hexa-aura/verify/numerics_cortex.hexa — pillar 3 (cortex) closed-form numerics (T2).
+//
+// @allow-relop-banned-file
+// @allow-bare-exec-file
+// @allow-silent-exit-file
+// @no-lock-needed
+// @resolver-bypass(reason="Pure local numerics; reads pillar doc only.")
+//
+// Beyond calc_cortex.hexa (integer zone/mode identities), this re-derives the
+// cortical-I/O bandwidth quantities with math_pure float math:
+//   1. channel-count ratios over the *best demonstrated* cortical interfaces:
+//      144 ch/tile vs 22-electrode cochlear implant; 1296 ch vs 60-electrode
+//      Argus-II / Orion; tiled S1 vs ~6-channel Flesher-2016 ICMS — all > 1.
+//   2. read-channel Shannon capacity: C = BW·log2(1 + SNR) per channel using
+//      the coil-pillar read SNR (~10) and a 100 Hz per-channel band; aggregate
+//      over n^τ=1296 channels gives a raw bit budget ≫ keyboard (~40 bit/s),
+//      ≫ speech (~150 bit/s) and ≫ the best published BCI decode rates.
+//   3. σ·τ = 48 K-class virtual-retina "pixel" budget per tile group; tiled,
+//      it crosses the Argus-II 60-electrode (≈ 6×10) effective-pixel floor.
+//   4. ≤ 5 simultaneous high-bandwidth zones fits the 200 Hz read frame.
+//   5. honest-gap flags: the *replaced* devices (earbuds ≈ Mbit/s) carry far
+//      more *raw* bandwidth than any demonstrated cortical write — the claim is
+//      channel-count over the right zone closes the *perceptual* (not raw) gap;
+//      this script checks the channel-count and information-rate arithmetic only.
+//
+// PASS = every quantity lands inside the design band. (T2 — F-AURA-3a/3b/3c/3d
+// stay OPEN; closed-form internal consistency, NOT a new non-invasive cortical
+// recording/stimulation result; decode ML stack = hexa-mind / hexa-brain.)
+//
+// Run:  hexa run verify/numerics_cortex.hexa
+// Authority: cortex/doc/cortical-interface.md (§1 / §2 / §6) + .roadmap.hexa_aura §B.3.
+// FALSIFIERS: F-AURA-3, F-AURA-3a, F-AURA-3b, F-AURA-3c, F-AURA-3d (T2 closed-form surface)
+// ──────────────────────────────────────────────────────────────────────────
+
+use "self/runtime/math_pure"
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_AURA_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()  // @allow-bare-exec
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/.hexa-aura"  // @allow-devpath
+}
+let ROOT = _root()
+let DOC = ROOT + "/cortex/doc/cortical-interface.md"
+fn _read(p: str) -> str { if file_exists(p) == false { return "" } return read_file(p) }
+fn _has(t: str, s: str) -> bool { if t.len() == 0 { return false } return t.find(s) > -1 }
+
+let mut RUN = 0
+let mut FAIL = 0
+fn _check(ok: bool, label: str, detail: str) {
+    RUN = RUN + 1
+    let mark = if ok { "PASS" } else { "FAIL" }
+    if ok == false { FAIL = FAIL + 1 }
+    println("  [" + mark + "] " + label)
+    if detail.len() > 0 { println("         · " + detail) }
+}
+fn _log2(x: float) -> float { return log_pure(x) / log_pure(2.0) }
+
+// n=6 anchors
+let SIGMA = 12.0
+let TAU = 4.0
+let PHI = 2.0
+let CH_TILE = 144.0                  // σ²
+let CH_HEX = 1296.0                  // n^τ
+let PX_TILEGROUP = 48000.0           // σ·τ = 48 → "48 K-class" px budget per tile group
+
+fn main() {
+    println("========================================================================")
+    println("  hexa-aura · pillar 3 (cortex) — closed-form numerics (T2 / F-AURA-3)")
+    println("========================================================================")
+    println("")
+
+    // ── 1. channel-count ratios over best demonstrated cortical interfaces ──
+    let r_cochlear = CH_TILE / 22.0
+    let r_argus = CH_HEX / 60.0
+    let r_icms = (4.0 * CH_TILE) / 6.0
+    _check(r_cochlear > 1.0, "σ²=144 ch/tile over A1 / cochlear-implant 22 electrodes = " + str(r_cochlear) + " > 1", "F-AURA-3a channel-count anchor")
+    _check(r_argus > 1.0, "n^τ=1296 ch over V1 / Argus-II + Orion 60 electrodes = " + str(r_argus) + " > 1", "F-AURA-3b channel-count anchor")
+    _check(r_icms > 1.0, "4-tile S1 patch (576 ch) / Flesher-2016 ICMS ~6 ch = " + str(r_icms) + " > 1", "F-AURA-3c channel-count anchor")
+
+    // ── 2. read-channel Shannon capacity ──
+    let snr_read = 10.0
+    let bw_ch_hz = 100.0
+    let c_per_ch = bw_ch_hz * _log2(1.0 + snr_read)
+    let c_aggregate = c_per_ch * CH_HEX
+    _check(c_per_ch > 100.0, "per-channel capacity C = BW·log2(1+SNR) = " + str(c_per_ch) + " bit/s ( > 100 )", "BW=100 Hz, SNR≈10")
+    _check(c_aggregate > 40.0, "aggregate read capacity " + str(c_aggregate) + " bit/s ≫ keyboard ~40 bit/s", "")
+    _check(c_aggregate > 150.0, "aggregate read capacity ≫ speech ~150 bit/s", "")
+    let best_bci_bits = 78.0 * 5.0 * 1.3 / 60.0
+    _check(c_aggregate > 100.0 * best_bci_bits, "aggregate read capacity > 100× best published BCI decode rate (≈" + str(best_bci_bits) + " bit/s)", "headroom for decode-efficiency losses (F-AURA-3d)")
+
+    // ── 3. virtual-retina pixel budget vs Argus-II floor ──
+    _check(PX_TILEGROUP > 60.0, "σ·τ = 48 K-class px / tile group ( " + str(PX_TILEGROUP) + " ) > Argus-II 60-electrode floor", "F-AURA-3b pixel anchor")
+    let argus_px = 60.0
+    let argus_denom = 1260.0
+    let scaled_denom = argus_denom * sqrt_pure(argus_px / PX_TILEGROUP)
+    _check(scaled_denom < 200.0, "naive acuity scaling 20/" + str(scaled_denom) + " ( < 20/200 ) — px ∝ acuity² (perceptual claim still UNPROVEN)", "")
+
+    // ── 4. ≤ 5 simultaneous high-bandwidth zones fits the 200 Hz frame ──
+    let frame_hz = 1000.0 / 5.0
+    let macro_per_hb_zone = 4.0
+    let hb_zones = 5.0
+    let macro_total = macro_per_hb_zone * hb_zones
+    let macro_capacity_per_frame = 32.0
+    _check(macro_total < macro_capacity_per_frame, "≤ 5 HB zones × 4 macro-tiles = " + str(macro_total) + " < " + str(macro_capacity_per_frame) + "/frame capacity at " + str(frame_hz) + " Hz", "sopfr=5 zone ceiling fits the read-frame budget")
+    _check(frame_hz > 199.0, "read frame " + str(frame_hz) + " Hz ( = 1/sopfr ms )", "")
+
+    // ── 5. honest-gap: replaced-device raw bandwidth ≫ any demonstrated cortical write ──
+    let earbud_bits = 2.0 * 20000.0 * 16.0
+    let cochlear_effective_ch = 8.0
+    _check(earbud_bits > c_aggregate, "honest gap: earbud raw bandwidth " + str(earbud_bits) + " bit/s > aggregate cortical write capacity " + str(c_aggregate) + " bit/s — perceptual (not raw) parity is the claim", "F-AURA-3a stays OPEN")
+    _check(CH_TILE > cochlear_effective_ch, "σ²=144 ch/tile ≫ cochlear ~8 effective spectral channels — channel headroom for the perceptual gap", "")
+
+    println("")
+    let t = _read(DOC)
+    _check(t.len() > 0, "cortex pillar doc present", DOC)
+    _check(_has(t, "cochlear"), "doc cites cochlear-implant reference (F-AURA-3a)", "")
+    _check(_has(t, "Argus") || _has(t, "Orion"), "doc cites Argus-II / Orion reference (F-AURA-3b)", "")
+    _check(_has(t, "Willett") || _has(t, "Metzger") || _has(t, "BrainGate") || _has(t, "WPM") || _has(t, "wpm"), "doc cites BrainGate / speech-BCI WPM reference (F-AURA-3d)", "")
+    _check(_has(t, "hexa-mind") || _has(t, "hexa-brain"), "doc defers decode ML stack to hexa-mind / hexa-brain (scope discipline)", "")
+
+    println("")
+    println("========================================================================")
+    let pass_n = RUN - FAIL
+    println("  " + str(pass_n) + "/" + str(RUN) + " numeric checks passed")
+    if FAIL > 0 { println("__HEXA_AURA_NUMERICS_CORTEX__ FAIL"); exit(1) }
+    println("  channel ratios / read-channel capacity / pixel budget / zone-frame budget all inside the design band;")
+    println("  the replaced-device-raw-bandwidth honest gap is explicitly flagged (F-AURA-3a OPEN).")
+    println("  (T2 — F-AURA-3a..3d stay OPEN; no new non-invasive cortical I/O; decode ML = hexa-mind / hexa-brain.)")
+    println("__HEXA_AURA_NUMERICS_CORTEX__ PASS")
+    exit(0)
+}

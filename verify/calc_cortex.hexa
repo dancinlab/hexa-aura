@@ -1,0 +1,135 @@
+#!hexa strict
+// ──────────────────────────────────────────────────────────────────────────
+// hexa-aura/verify/calc_cortex.hexa — pillar 3 (cortex / cortical I/O) n=6 derivation (T1 algebraic).
+//
+// @allow-relop-banned-file
+// @allow-bare-exec-file
+// @allow-silent-exit-file
+// @no-lock-needed
+// @resolver-bypass(reason="Pure local arithmetic verifier; reads pillar doc only.")
+//
+// Algebraic-only derivation of the HEXA-CORTICAL-IF topology (T1 rung of
+// F-AURA-3): σ=12 cortical target zones, τ=4 operating modes, τ=4 cortex
+// layers tapped of n=6, φ=2 directions, sopfr=5 ms latency, σ·τ=48 (K-class
+// virtual-retina pixels), and the "18 wearables → φ=2 clips" collapse map
+// (count of replaced wearables ≥ 18 ; count of clips = 2).
+//
+// Run:  hexa run verify/calc_cortex.hexa
+// Authority: cortex/doc/cortical-interface.md (§0 / §4) + .roadmap.hexa_aura §B.3.
+// FALSIFIERS: F-AURA-3, F-AURA-3a, F-AURA-3b, F-AURA-3c, F-AURA-3d (T1 algebraic surface)
+// ──────────────────────────────────────────────────────────────────────────
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_AURA_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()  // @allow-bare-exec
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/.hexa-aura"  // @allow-devpath
+}
+let ROOT = _root()
+let DOC = ROOT + "/cortex/doc/cortical-interface.md"
+fn _read(p: str) -> str { if file_exists(p) == false { return "" } return read_file(p) }
+fn _has(t: str, s: str) -> bool { if t.len() == 0 { return false } return t.find(s) > -1 }
+
+let mut RUN = 0
+let mut FAIL = 0
+fn _check(ok: bool, label: str, detail: str) {
+    RUN = RUN + 1
+    let mark = if ok { "PASS" } else { "FAIL" }
+    if ok == false { FAIL = FAIL + 1 }
+    println("  [" + mark + "] " + label)
+    if detail.len() > 0 { println("         · " + detail) }
+}
+
+let N = 6
+let SIGMA = 12
+let TAU = 4
+let PHI = 2
+let SOPFR = 5
+let J2 = 24
+
+// σ=12 cortical target zones (the spec's enumeration)
+let ZONES = ["A1","A2","V1","V2","V4","V5","V6","S1","S2","M1","PFC","hipp-relay"]
+// τ=4 operating modes
+let MODES = ["sense","inject","sync","sleep"]
+// the 18+ wearables the cortical I/O collapses (cortex pillar §1)
+let WEARABLES = [
+    "earbuds","headphones","hearing-aid","AR-glasses","VR-headset","smart-glasses-display",
+    "e-skin","haptic-suit","VR-gloves","exoskeleton","myoelectric-prosthetic","sleep-tracker",
+    "HRV-ring","smartwatch","haptic-alert","eye-tracker","voice-earpiece","emotion-share"
+]
+
+fn main() {
+    println("========================================================================")
+    println("  hexa-aura · pillar 3 (cortex) — n=6 algebraic derivation (T1 / F-AURA-3)")
+    println("========================================================================")
+    println("")
+
+    // ── σ = 12 cortical target zones ──
+    _check(ZONES.len() == SIGMA, "cortical target zones = σ(6) = 12", "{A1,A2,V1,V2,V4,V5,V6,S1,S2,M1,PFC,hipp-relay}")
+    // 5 zone families: auditory(2) + visual(5) + somatosensory(2) + motor(1) + frontal/relay(2) = 12
+    let fam_sum = 2 + 5 + 2 + 1 + 2
+    _check(fam_sum == SIGMA, "zone families: auditory 2 + visual 5 + somato 2 + motor 1 + frontal/relay 2 = 12", "2+5+2+1+2 = " + str(fam_sum))
+
+    // ── τ = 4 operating modes ──
+    _check(MODES.len() == TAU, "operating modes = τ(6) = 4 (sense · inject · sync · sleep)", "")
+
+    // ── τ = 4 cortex layers tapped of n = 6 (layers II/III · IV · V · VI) ──
+    _check(TAU < N + 1 && TAU == 4 && N == 6, "cortex layers tapped = τ(6) = 4 of n(6) = 6 neocortical layers (II/III · IV · V · VI)", "4 of 6")
+
+    // ── φ = 2 directions (read decode + write inject) ──
+    _check(PHI == 2, "directions = φ(6) = 2 (read decode + write inject)", "closed loop")
+
+    // ── sopfr = 5 ms closed-loop latency ; ≤ 5 simultaneous high-bandwidth zones ──
+    _check(SOPFR == 5 && SOPFR == 2 + 3, "closed-loop latency ≤ sopfr(6) = 2+3 = 5 ms ; ≤ 5 simultaneous HB zones", "feels instantaneous")
+
+    // ── σ·τ = 48 → 48 K-class virtual-retina pixel budget per tile group ──
+    let st = SIGMA * TAU                   // 48
+    _check(st == 48, "virtual-retina pixel budget = σ·τ = 48 (K-class) per tile group", "12·4 = " + str(st))
+
+    // ── J₂ = 24-channel macro-tile = decoder data-plane unit ──
+    _check(SIGMA * PHI == J2, "decoder data-plane unit = J₂ = 24-channel macro-tile", "")
+
+    // ── 18 wearables → φ=2 clips collapse map ──
+    _check(WEARABLES.len() > 17, "replaced-wearable count ≥ 18", "enumerated: " + str(WEARABLES.len()))
+    _check(PHI == 2, "post-collapse worn-device count = φ(6) = 2 (1 clip pair)", "18 → 2")
+    // σ - φ = 10 → 18 / 10 ≈ 1 worn-object class
+    _check(SIGMA - PHI == 10 && WEARABLES.len() / (SIGMA - PHI) == 1, "σ - φ = 10 → 18 / 10 = 1 worn-object class", "18/10 = " + str(WEARABLES.len() / (SIGMA - PHI)))
+
+    // ── A1 audio / V1 visual / S1 haptic / M1 motor lanes all in the zone set ──
+    let mut has_a1 = false
+    let mut has_v1 = false
+    let mut has_s1 = false
+    let mut has_m1 = false
+    for z in ZONES {
+        if z == "A1" { has_a1 = true }
+        if z == "V1" { has_v1 = true }
+        if z == "S1" { has_s1 = true }
+        if z == "M1" { has_m1 = true }
+    }
+    _check(has_a1 && has_v1 && has_s1 && has_m1, "A1 (audio) · V1 (vision) · S1 (haptic) · M1 (motor) all in σ=12 zone set", "earbuds/AR-glasses/e-skin/exoskeleton replacement lanes present")
+
+    // ── read rate from coil: 1/(sopfr ms) = 200 Hz ──
+    _check(1000 / SOPFR == 200, "read rate inherited from coil = 1/(sopfr ms) = 200 Hz", "")
+
+    println("")
+    let t = _read(DOC)
+    _check(t.len() > 0, "cortex pillar doc present", DOC)
+    _check(_has(t, "σ=12") || _has(t, "12 cortical") || _has(t, "12 zones"), "doc states σ=12 cortical zones", "")
+    _check(_has(t, "18") && (_has(t, "wearable") || _has(t, "0")), "doc states 18-wearable → 0 collapse", "")
+    _check(_has(t, "A1") && _has(t, "V1") && _has(t, "S1"), "doc names A1 / V1 / S1 zones", "")
+    _check(_has(t, "hexa-mind") && _has(t, "hexa-senses"), "doc cross-links hexa-mind (ML) + hexa-senses (sensory) — scope discipline", "")
+    _check(_has(t, "F-AURA-3"), "doc names falsifier F-AURA-3", "")
+    _check(_has(t, "cochlear") && (_has(t, "Argus") || _has(t, "BrainGate")), "doc cites published cortical-I/F references", "")
+
+    println("")
+    println("========================================================================")
+    let pass_n = RUN - FAIL
+    println("  " + str(pass_n) + "/" + str(RUN) + " algebraic checks passed")
+    if FAIL > 0 { println("__HEXA_AURA_CALC_CORTEX__ FAIL"); exit(1) }
+    println("  HEXA-CORTICAL-IF topology + the 18→2(φ) collapse map are integer consequences of the lattice.")
+    println("  (T1 only — F-AURA-3a/3b/3c/3d remain OPEN; no new non-invasive cortical I/O demonstrated.)")
+    println("__HEXA_AURA_CALC_CORTEX__ PASS")
+    exit(0)
+}

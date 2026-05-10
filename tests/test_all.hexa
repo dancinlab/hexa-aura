@@ -1,0 +1,76 @@
+#!hexa strict
+// ──────────────────────────────────────────────────────────────────────────
+// hexa-aura/tests/test_all.hexa — top-level aggregator (rolls up the test suite).
+//
+// @allow-relop-banned-file
+// @allow-bare-exec-file
+// @allow-silent-exit-file
+//
+// Runs every test in tests/ in its own `hexa run` invocation and aggregates:
+//   1. test_selftest.hexa       — 4 pillar + 5 atlas presence + dispatcher sentinel
+//   2. test_lattice.hexa        — n=6 closure regression (verify/lattice_check.hexa)
+//   3. test_calculators.hexa    — full RSC verify surface (19 scripts)
+//   4. test_cli_verify.hexa     — CLI surface faithfully exposes the verify contract
+//
+// PASS = every sub-test exits 0.  (Each is independently runnable; this is the
+// `hx test` entry that hexa.toml [test].files also lists individually.)
+//
+// Cost: $0.
+// ──────────────────────────────────────────────────────────────────────────
+
+let HOME = env("HOME")
+fn _hexa_bin() -> str {
+    let real = HOME + "/.hx/packages/hexa/hexa.real"  // @allow-devpath
+    if file_exists(real) { return real }
+    let h = exec("which hexa 2>/dev/null").trim()  // @allow-bare-exec
+    if h.len() > 0 { return h }
+    return HOME + "/.hx/bin/hexa"  // @allow-devpath
+}
+
+let SUBTESTS = [
+    "tests/test_selftest.hexa",
+    "tests/test_lattice.hexa",
+    "tests/test_calculators.hexa",
+    "tests/test_cli_verify.hexa",
+]
+
+fn main() {
+    let mut root = env("HEXA_AURA_ROOT")
+    if root.len() == 0 { root = exec("pwd").trim() }  // @allow-bare-exec
+    let bin = _hexa_bin()
+
+    let mut pass = 0
+    let mut fail = 0
+    let mut failures: [str] = []
+    for st in SUBTESTS {
+        let path = root + "/" + st
+        if file_exists(path) == false {
+            fail = fail + 1
+            failures = failures + [st + " :: missing"]
+            println("  [FAIL] " + st + " — missing")
+            continue
+        }
+        let cmd = "HEXA_AURA_ROOT=\"" + root + "\" timeout 600 \"" + bin + "\" run \"" + path + "\" 2>&1"
+        let res = exec_with_status(cmd)
+        let out = to_string(res[0])
+        let code = res[1]
+        if code == 0 {
+            pass = pass + 1
+            println("  [PASS] " + st)
+        } else {
+            fail = fail + 1
+            failures = failures + [st + " :: code=" + str(code)]
+            println("  [FAIL] " + st + " — code=" + str(code))
+            println(out.trim())
+        }
+    }
+
+    println("")
+    println("test_all: " + str(pass) + "/" + str(SUBTESTS.len()) + " sub-tests PASS")
+    if fail > 0 {
+        for f in failures { println("  ✗ " + f) }
+        println("test_all: FAIL")
+        exit(1)
+    }
+    println("test_all: PASS — selftest + lattice + calculators + cli_verify all PASS")
+}

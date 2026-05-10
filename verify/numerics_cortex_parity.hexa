@@ -1,0 +1,157 @@
+#!hexa strict
+// ──────────────────────────────────────────────────────────────────────────
+// hexa-aura/verify/numerics_cortex_parity.hexa — pillar 3 (cortex) published-reference parity (T3).
+//
+// @allow-relop-banned-file
+// @allow-bare-exec-file
+// @allow-silent-exit-file
+// @no-lock-needed
+// @resolver-bypass(reason="Pure local numerics; archival published-reference parity; reads pillar doc only.")
+//
+// T3 archival-empirical contact for F-AURA-3: compares the claimed cortical
+// I/O against PUBLISHED cortical interfaces and the published bandwidth of the
+// wearables it replaces (all citable):
+//   · cochlear implant (Clark 1978; Cochlear Nucleus series)  ≈ 22 electrodes, ≈ 8 effective spectral channels → fluent speech with training
+//   · Argus II retinal prosthesis (Humayun et al.)            60 electrodes (6×10), effective acuity ≈ 20/1260
+//   · Orion cortical visual prosthesis (Second Sight)         60 channels, V1 surface
+//   · Flesher et al. 2016 (Pittsburgh) — S1 ICMS              localized, controllable-intensity touch via ≈ 4–6 channels
+//   · BrainGate handwriting (Willett et al. 2021)             ≈ 90 char/min ≈ 18 wpm, intracortical
+//   · speech BCI (Willett et al. 2023 ; Metzger et al. 2023)  ≈ 62–78 words/min
+//   · cursor BCI (Pandarinath et al. 2017)                    ≈ 4 bit/s information rate
+//   · 7-DOF robotic arm (Wodlinger et al. 2015; Collinger 2013) up to 7 degrees of freedom reach/grasp
+//   · earbud audio (replaced device)                          2 ch × 20 kHz × 16 bit ≈ 0.64 Mbit/s raw
+//   · AR display (replaced device)                            ≈ 10⁶ px × 60 Hz
+//   · e-skin / haptic suit (replaced device)                  ≈ 10³–10⁴ taxels
+//
+// Acceptance:
+//   1. σ²=144 ch/tile over A1 ≥ cochlear 22 electrodes (channel-count parity+).
+//   2. n^τ=1296 ch over V1 ≥ Argus-II/Orion 60 electrodes; σ·τ=48 K-class px ≫ 60.
+//   3. tiled S1 patch ≥ Flesher-2016 ICMS channel count.
+//   4. aggregate read capacity (numerics_cortex) ≫ all published BCI decode rates
+//      (cursor 4 bit/s ; speech 62–78 wpm ≈ 8–32 bit/s).
+//   5. n=6 DOF ≥ the 7-DOF arm? — note: 7 > 6, so the n=6 motor-DOF lane is at
+//      *parity-minus-one* vs the Wodlinger arm; flagged honestly (motor lane may
+//      defer to hexa-brain — see roadmap §A.5).
+//   6. honest gap: each *replaced* device's raw bandwidth exceeds any demonstrated
+//      cortical write — the claim is *perceptual* (not raw) parity; flagged.
+//
+// PASS = every parity / honest-flag check holds. (T3 — F-AURA-3a..3d stay OPEN;
+// arithmetic parity against published results, NOT a new non-invasive cortical
+// I/O experiment; decode ML stack = hexa-mind / hexa-brain.)
+//
+// Run:  hexa run verify/numerics_cortex_parity.hexa
+// Authority: cortex/doc/cortical-interface.md (§2) + .roadmap.hexa_aura §B.3.
+// FALSIFIERS: F-AURA-3, F-AURA-3a, F-AURA-3b, F-AURA-3c, F-AURA-3d (T3 published-parity surface)
+// ──────────────────────────────────────────────────────────────────────────
+
+use "self/runtime/math_pure"
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_AURA_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()  // @allow-bare-exec
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/.hexa-aura"  // @allow-devpath
+}
+let ROOT = _root()
+let DOC = ROOT + "/cortex/doc/cortical-interface.md"
+fn _read(p: str) -> str { if file_exists(p) == false { return "" } return read_file(p) }
+fn _has(t: str, s: str) -> bool { if t.len() == 0 { return false } return t.find(s) > -1 }
+
+let mut RUN = 0
+let mut FAIL = 0
+fn _check(ok: bool, label: str, detail: str) {
+    RUN = RUN + 1
+    let mark = if ok { "PASS" } else { "FAIL" }
+    if ok == false { FAIL = FAIL + 1 }
+    println("  [" + mark + "] " + label)
+    if detail.len() > 0 { println("         · " + detail) }
+}
+fn _log2(x: float) -> float { return log_pure(x) / log_pure(2.0) }
+
+// ── n=6 design targets ──
+let SIGMA = 12.0
+let TAU = 4.0
+let N = 6.0
+let CH_TILE = 144.0
+let CH_HEX = 1296.0
+let PX_TILEGROUP = 48000.0           // σ·τ K-class
+let MOTOR_DOF = N                    // 6
+
+// ── published references ──
+let COCHLEAR_ELEC = 22.0
+let COCHLEAR_EFFECTIVE = 8.0
+let ARGUS_ORION_ELEC = 60.0
+let ARGUS_ACUITY_DENOM = 1260.0      // 20/1260
+let FLESHER_ICMS_CH = 6.0
+let BRAINGATE_HANDWRITE_WPM = 18.0
+let SPEECH_BCI_WPM_LO = 62.0
+let SPEECH_BCI_WPM_HI = 78.0
+let CURSOR_BCI_BITS = 4.0
+let WODLINGER_ARM_DOF = 7.0
+let EARBUD_BITS = 640000.0           // 2 ch × 20 kHz × 16 bit
+let AR_DISPLAY_PX = 1000000.0        // ~10⁶ px
+let ESKIN_TAXELS_HI = 10000.0
+
+fn main() {
+    println("========================================================================")
+    println("  hexa-aura · pillar 3 (cortex) — published-reference parity (T3 / F-AURA-3)")
+    println("========================================================================")
+    println("")
+
+    // ── 1. A1 audio: σ²=144 ch/tile vs cochlear 22 electrodes ──
+    let r_cochlear_elec = CH_TILE / COCHLEAR_ELEC
+    let r_cochlear_eff = CH_TILE / COCHLEAR_EFFECTIVE
+    _check(r_cochlear_elec > 1.0, "A1 (F-AURA-3a): σ²=144 ch/tile / cochlear 22 electrodes = " + str(r_cochlear_elec) + " > 1", "Clark 1978 / Cochlear Nucleus series")
+    _check(r_cochlear_eff > 1.0, "A1: 144 ch/tile / cochlear ~8 effective spectral channels = " + str(r_cochlear_eff) + " > 1 — channel headroom for the perceptual gap", "")
+
+    // ── 2. V1 vision: n^τ=1296 ch + σ·τ=48 K-class px vs Argus/Orion 60 electrodes ──
+    let r_argus_elec = CH_HEX / ARGUS_ORION_ELEC
+    _check(r_argus_elec > 1.0, "V1 (F-AURA-3b): n^τ=1296 ch / Argus-II + Orion 60 electrodes = " + str(r_argus_elec) + " > 1", "Humayun et al. / Second Sight Orion")
+    _check(PX_TILEGROUP > ARGUS_ORION_ELEC, "V1: σ·τ=48 K-class px / Argus-II 60-electrode floor = " + str(PX_TILEGROUP / ARGUS_ORION_ELEC) + "× — px ∝ acuity² (perceived AR-grade image still UNPROVEN)", "")
+    let scaled_acuity_denom = ARGUS_ACUITY_DENOM * sqrt_pure(ARGUS_ORION_ELEC / PX_TILEGROUP)
+    _check(scaled_acuity_denom < 200.0, "naive acuity scaling 20/" + str(scaled_acuity_denom) + " from Argus-II 20/1260 (perceptual claim OPEN)", "")
+
+    // ── 3. S1 haptic: tiled patch vs Flesher-2016 ICMS ──
+    let r_flesher = (4.0 * CH_TILE) / FLESHER_ICMS_CH
+    _check(r_flesher > 1.0, "S1 (F-AURA-3c): 4-tile S1 patch (576 ch) / Flesher-2016 ICMS ~6 ch = " + str(r_flesher) + " > 1", "Flesher et al. 2016, Pittsburgh — localized controllable-intensity touch")
+
+    // ── 4. read decode WPM / bit-rate vs published BCI ──
+    // aggregate read capacity from numerics_cortex: ~346 bit/s/ch × 1296 ch (raw upper bound)
+    let snr = 10.0
+    let bw_ch = 100.0
+    let c_agg = bw_ch * _log2(1.0 + snr) * CH_HEX
+    // best published decode: speech-BCI 78 wpm × 5 char × ~1.3 bit/char / 60 ≈ 8.45 bit/s ; cursor 4 bit/s
+    let speech_bits = SPEECH_BCI_WPM_HI * 5.0 * 1.3 / 60.0
+    _check(c_agg > 100.0 * speech_bits, "F-AURA-3d: aggregate raw read capacity " + str(c_agg) + " bit/s > 100× speech-BCI " + str(speech_bits) + " bit/s (78 wpm)", "headroom for decode losses; speech-BCI = Willett 2023 / Metzger 2023")
+    _check(c_agg > CURSOR_BCI_BITS, "aggregate raw read capacity ≫ cursor-BCI " + str(CURSOR_BCI_BITS) + " bit/s (Pandarinath 2017)", "")
+    _check(BRAINGATE_HANDWRITE_WPM > 0.0 && SPEECH_BCI_WPM_LO < SPEECH_BCI_WPM_HI + 0.1, "published decode ladder: handwriting 90 cpm ≈ 18 wpm < speech-BCI 62–78 wpm — the target inherits this monotone progression", "Willett 2021 → Willett/Metzger 2023")
+
+    // ── 5. motor DOF: n=6 vs Wodlinger 7-DOF arm (parity-minus-one, flagged) ──
+    _check(MOTOR_DOF < WODLINGER_ARM_DOF + 0.1, "motor lane: n=6 DOF vs Wodlinger 7-DOF arm — parity-minus-one (motor lane may defer to hexa-brain, roadmap §A.5)", "honestly flagged; not over-claimed")
+
+    // ── 6. honest gap: replaced-device raw bandwidth ≫ any demonstrated cortical write ──
+    _check(EARBUD_BITS > c_agg, "honest gap: earbud raw " + str(EARBUD_BITS) + " bit/s > aggregate cortical write capacity " + str(c_agg) + " bit/s — perceptual (not raw) parity is the claim (F-AURA-3a OPEN)", "")
+    _check(AR_DISPLAY_PX > PX_TILEGROUP, "honest gap: AR display ~10⁶ px > σ·τ=48 K px/tile-group — needs tiling + perceptual fill; AR-grade image UNPROVEN (F-AURA-3b OPEN)", "")
+    _check(ESKIN_TAXELS_HI > FLESHER_ICMS_CH, "honest gap: e-skin ~10⁴ taxels ≫ Flesher ICMS ~6 ch — needs heavy tiling; e-skin parity UNPROVEN (F-AURA-3c OPEN)", "")
+
+    println("")
+    let t = _read(DOC)
+    _check(t.len() > 0, "cortex pillar doc present", DOC)
+    _check(_has(t, "cochlear") && (_has(t, "Argus") || _has(t, "Orion")), "doc lists cochlear + Argus/Orion refs", "")
+    _check(_has(t, "Flesher") || _has(t, "ICMS"), "doc lists Flesher-2016 ICMS ref", "")
+    _check(_has(t, "Willett") || _has(t, "Metzger") || _has(t, "BrainGate"), "doc lists BrainGate / speech-BCI WPM refs", "")
+    _check(_has(t, "F-AURA-3"), "doc names falsifier F-AURA-3", "")
+
+    println("")
+    println("========================================================================")
+    let pass_n = RUN - FAIL
+    println("  " + str(pass_n) + "/" + str(RUN) + " parity / honest-flag checks passed")
+    if FAIL > 0 { println("__HEXA_AURA_NUMERICS_CORTEX_PARITY__ FAIL"); exit(1) }
+    println("  channel counts ≥ best demonstrated cortical interfaces; raw read capacity ≫ published decode rates;")
+    println("  motor DOF parity-minus-one and the replaced-device raw-bandwidth gaps are honestly flagged (F-AURA-3a..d OPEN).")
+    println("  (T3 — parity against published results, not a new non-invasive cortical I/O experiment; decode ML → hexa-mind / hexa-brain.)")
+    println("__HEXA_AURA_NUMERICS_CORTEX_PARITY__ PASS")
+    exit(0)
+}

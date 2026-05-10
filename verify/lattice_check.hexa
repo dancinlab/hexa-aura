@@ -1,0 +1,239 @@
+#!hexa strict
+// ──────────────────────────────────────────────────────────────────────────
+// hexa-aura/verify/lattice_check.hexa — n=6 invariant lattice audit (T1 cross-cutter).
+//
+// @allow-relop-banned-file
+// @allow-bare-exec-file
+// @allow-silent-exit-file
+// @no-lock-needed
+// @resolver-bypass(reason="Pure local verifier; reads project docs only.")
+//
+// Verifies σ(6)=12, τ(6)=4, φ(6)=2, sopfr(6)=5, μ(6)=1, J₂=24, the closure
+// σ(6)·φ(6) = n·τ(6) = J₂ = 24, σ²=144, σ³=1728, n^τ=6⁴=1296, σ-φ=10,
+// σ·n/10=3.6, and that these hold consistently across:
+//   .roadmap.hexa_aura                       — repo-overall lattice declaration (§A.1)
+//   clip/doc/mastoid-clip.md                 — pillar 1 (form-factor)
+//   coil/doc/rt-sc-nanocoil.md               — pillar 2 (transducer)
+//   cortex/doc/cortical-interface.md         — pillar 3 (cortical I/O)
+//   safety/doc/cortical-safety.md            — pillar 4 (safety caps)
+//   docs/{neuro,brain-computer-interface,hexa-neuromorphic,l9-field-photon-neuro,neuroscience}.md — 5-doc atlas
+//
+// Authority: .roadmap.hexa_aura §A.1; n=6 perfect-number closure.
+// Run:  hexa run verify/lattice_check.hexa
+// Cost: $0 (pure file reads + string scan).
+//
+// FALSIFIERS: F-AURA-1, F-AURA-2, F-AURA-3, F-AURA-4 (lattice-token consistency surface only)
+// ──────────────────────────────────────────────────────────────────────────
+
+let HOME = env("HOME")
+
+fn _root() -> str {
+    let r = env("HEXA_AURA_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()  // @allow-bare-exec
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/.hexa-aura"  // @allow-devpath
+}
+
+let ROOT = _root()
+
+// ── canonical n=6 lattice values (own of hexa-aura, mirrors .roadmap §A.1) ──
+let N        = 6
+let SIGMA_6  = 12      // σ(6)
+let TAU_6    = 4       // τ(6)
+let PHI_6    = 2       // φ(6)
+let SOPFR_6  = 5       // sopfr(6) = 2+3
+let MU_6     = 1       // μ(6)
+let J2       = 24      // 2·σ
+let SIGMA_PHI = 10     // σ - φ
+
+// ── doc paths ────────────────────────────────────────────────────────────
+let DOC_ROADMAP = ROOT + "/.roadmap.hexa_aura"
+let DOC_CLIP    = ROOT + "/clip/doc/mastoid-clip.md"
+let DOC_COIL    = ROOT + "/coil/doc/rt-sc-nanocoil.md"
+let DOC_CORTEX  = ROOT + "/cortex/doc/cortical-interface.md"
+let DOC_SAFETY  = ROOT + "/safety/doc/cortical-safety.md"
+let DOC_NEURO   = ROOT + "/docs/neuro.md"
+let DOC_BCI     = ROOT + "/docs/brain-computer-interface.md"
+let DOC_NEUROM  = ROOT + "/docs/hexa-neuromorphic.md"
+let DOC_L9      = ROOT + "/docs/l9-field-photon-neuro.md"
+let DOC_NSCI    = ROOT + "/docs/neuroscience.md"
+
+// ── helpers ──────────────────────────────────────────────────────────────
+
+fn _read(path: str) -> str {
+    if file_exists(path) == false { return "" }
+    return read_file(path)
+}
+
+fn _has(text: str, needle: str) -> bool {
+    if text.len() == 0 { return false }
+    if needle.len() == 0 { return true }
+    return text.find(needle) > -1
+}
+
+fn _any_of(text: str, needles: [str]) -> bool {
+    for ndl in needles { if _has(text, ndl) { return true } }
+    return false
+}
+
+let mut RUN = 0
+let mut FAIL = 0
+let mut WARN = 0
+let mut FAILURES: [str] = []
+
+fn _check(ok: bool, label: str, detail: str) {
+    RUN = RUN + 1
+    if ok {
+        println("  [PASS] " + label)
+        if detail.len() > 0 { println("         · " + detail) }
+    } else {
+        FAIL = FAIL + 1
+        FAILURES = FAILURES + [label + " :: " + detail]
+        println("  [FAIL] " + label)
+        if detail.len() > 0 { println("         · " + detail) }
+    }
+}
+
+fn _warn(label: str, detail: str) {
+    WARN = WARN + 1
+    println("  [WARN] " + label)
+    if detail.len() > 0 { println("         · " + detail) }
+}
+
+// ── arithmetic checks ────────────────────────────────────────────────────
+
+fn check_closure() {
+    let lhs = SIGMA_6 * PHI_6
+    let mid = N * TAU_6
+    _check(lhs == J2 && mid == J2 && lhs == mid,
+           "n=6 closure: σ(6)·φ(6) = n·τ(6) = J₂",
+           "12·2 = 6·4 = " + str(J2))
+}
+
+fn check_sopfr_mu() {
+    _check(SOPFR_6 == 5 && MU_6 == 1 && (SOPFR_6 == 2 + 3),
+           "sopfr(6) = 2+3 = 5 ; μ(6) = 1",
+           "5 mm bone window / 5 ms latency ; 1 μm pitch / 1 % FAR floor")
+}
+
+fn check_sigma_powers() {
+    let s2 = SIGMA_6 * SIGMA_6
+    let s3 = SIGMA_6 * SIGMA_6 * SIGMA_6
+    let n4 = N * N * N * N
+    _check(s2 == 144 && s3 == 1728 && n4 == 1296 && SIGMA_PHI == SIGMA_6 - PHI_6,
+           "σ²=144 (ch/tile) ; σ³=1728 (electrode-equiv) ; n^τ=6⁴=1296 (hex lattice) ; σ-φ=10",
+           "144=12², 1728=12³, 1296=6⁴, 10=12-2")
+}
+
+fn check_clip_mass_target() {
+    // σ·n/10 = 12·6/10 = 7.2 → per-clip 3.6 g, pair 7.2 g (the README/clip-pillar target)
+    // (integer arithmetic: 12·6 = 72 → /10 g/clip-pair-tenths; pillar uses 3.6 g/clip).
+    let sn = SIGMA_6 * N        // 72
+    _check(sn == 72,
+           "clip mass anchor: σ·n = 72 → 7.2 g pair (3.6 g/side)",
+           "12·6 = " + str(sn) + " ; /10 = 7.2 g pair (AirPods-Pro 5.4 g class)")
+}
+
+fn check_safety_caps_arith() {
+    // SAR ≤ φ = 2 W/kg ; ΔT ≤ φ/τ = 0.5 K ; coating life ≥ φ·σ = 24 yr ; k ≤ round-up(sopfr/τ=1.25) = 2 but design target 1.5
+    let sar = PHI_6                       // 2
+    let life = PHI_6 * SIGMA_6            // 24
+    _check(sar == 2 && life == 24 && (SOPFR_6 * 10) / TAU_6 == 12,
+           "safety caps: SAR≤φ=2 W/kg ; coating life≥φ·σ=24 yr ; sopfr/τ=1.25 → Shannon k design target ≤1.5",
+           "2 W/kg ; 24 yr ; 5/4 = 1.25 (×10 = 12)")
+}
+
+// ── doc-presence + lattice-token checks ──────────────────────────────────
+
+fn check_roadmap_declares_lattice() {
+    let txt = _read(DOC_ROADMAP)
+    if txt.len() == 0 { _check(false, "roadmap present", DOC_ROADMAP + " missing"); return }
+    _check(_any_of(txt, ["σ(6)", "sigma(6)"]) && _has(txt, "12"), "roadmap declares σ(6)=12", ".roadmap.hexa_aura §A.1")
+    _check(_any_of(txt, ["τ(6)", "tau(6)"]) && _has(txt, "4"), "roadmap declares τ(6)=4", ".roadmap.hexa_aura §A.1")
+    _check(_any_of(txt, ["φ(6)", "phi(6)"]) && _has(txt, "2"), "roadmap declares φ(6)=2", ".roadmap.hexa_aura §A.1")
+    _check(_any_of(txt, ["J₂", "J_2", "J2"]) && _has(txt, "24"), "roadmap declares J₂=24", ".roadmap.hexa_aura §A.1")
+    _check(_has(txt, "F-AURA-1") && _has(txt, "F-AURA-2") && _has(txt, "F-AURA-3") && _has(txt, "F-AURA-4"),
+           "roadmap §A.4 preregisters F-AURA-1/2/3/4", "falsifier SSOT present")
+}
+
+fn check_pillar_lattice_refs(pillar: str, path: str) {
+    let txt = _read(path)
+    if txt.len() == 0 { _check(false, "pillar present: " + pillar, path + " missing"); return }
+    _check(_any_of(txt, ["σ(6)", "sigma(6)", "σ=12", "sigma=12", "σ ="]), pillar + ": σ(6) referenced", "")
+    _check(_any_of(txt, ["τ(6)", "tau(6)", "τ=4", "tau=4", "τ ="]), pillar + ": τ(6) referenced", "")
+    _check(_any_of(txt, ["φ(6)", "phi(6)", "φ=2", "phi=2", "φ ="]), pillar + ": φ(6) referenced", "")
+    _check(_any_of(txt, ["sopfr"]), pillar + ": sopfr(6) referenced", "")
+    _check(_any_of(txt, ["F-AURA-"]), pillar + ": falsifier ID present", "")
+}
+
+fn check_atlas_lattice_refs(name: str, path: str) {
+    let txt = _read(path)
+    if txt.len() == 0 { _check(false, "atlas present: " + name, path + " missing"); return }
+    let ok = _any_of(txt, ["sigma", "σ", "n=6", "n6", "n = 6"])
+    _check(ok, "atlas " + name + ": n=6 lattice referenced", "")
+}
+
+fn check_j2_cross_pillar() {
+    let mut hits = 0
+    let paths = [DOC_CLIP, DOC_COIL, DOC_CORTEX, DOC_SAFETY]
+    for p in paths {
+        let t = _read(p)
+        if _any_of(t, ["J₂", "J_2", "= 24", "=24", "J2"]) { hits = hits + 1 }
+    }
+    _check(hits > 2, "J₂=24 token appears in ≥ 3 of 4 pillars", "hits = " + str(hits) + " of 4")
+}
+
+fn check_eighteen_to_zero_map() {
+    // The "18 wearables → 0 (φ=2 clips)" claim should appear in cortex pillar + roadmap.
+    let tc = _read(DOC_CORTEX)
+    let tr = _read(DOC_ROADMAP)
+    let ok = (_has(tc, "18") && (_has(tc, "wearable") || _has(tc, "0"))) && (_has(tr, "18") && _has(tr, "0개"))
+    _check(ok, "18→0 wearable-collapse map present (cortex pillar + roadmap)", "σ-φ=10 → 18/10 ≈ 1 worn class (φ=2 clips)")
+}
+
+// ── main ─────────────────────────────────────────────────────────────────
+
+fn main() {
+    println("========================================================================")
+    println("  hexa-aura — n=6 invariant lattice audit (T1 cross-cutter)")
+    println("  σ(6)=12, τ(6)=4, φ(6)=2, sopfr(6)=5, μ(6)=1, J₂=24 — closure σ·φ = n·τ = J₂")
+    println("========================================================================")
+    println("  root: " + ROOT)
+    println("")
+    check_closure()
+    check_sopfr_mu()
+    check_sigma_powers()
+    check_clip_mass_target()
+    check_safety_caps_arith()
+    println("")
+    check_roadmap_declares_lattice()
+    println("")
+    check_pillar_lattice_refs("clip",   DOC_CLIP)
+    check_pillar_lattice_refs("coil",   DOC_COIL)
+    check_pillar_lattice_refs("cortex", DOC_CORTEX)
+    check_pillar_lattice_refs("safety", DOC_SAFETY)
+    println("")
+    check_atlas_lattice_refs("neuro",                    DOC_NEURO)
+    check_atlas_lattice_refs("brain-computer-interface", DOC_BCI)
+    check_atlas_lattice_refs("hexa-neuromorphic",        DOC_NEUROM)
+    check_atlas_lattice_refs("l9-field-photon-neuro",    DOC_L9)
+    check_atlas_lattice_refs("neuroscience",             DOC_NSCI)
+    println("")
+    check_j2_cross_pillar()
+    check_eighteen_to_zero_map()
+    println("")
+
+    println("========================================================================")
+    let pass_n = RUN - FAIL
+    println("  " + str(pass_n) + "/" + str(RUN) + " checks passed  (" + str(WARN) + " warn)")
+    if FAIL > 0 {
+        println("  FAILURES:")
+        for f in FAILURES { println("    ✗ " + f) }
+        println("__HEXA_AURA_LATTICE__ FAIL")
+        exit(1)
+    }
+    println("  All n=6 invariants hold across roadmap + 4 pillars + 5-doc atlas.")
+    println("__HEXA_AURA_LATTICE__ PASS")
+    exit(0)
+}

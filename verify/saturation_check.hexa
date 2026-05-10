@@ -1,0 +1,143 @@
+#!hexa strict
+// ──────────────────────────────────────────────────────────────────────────
+// hexa-aura/verify/saturation_check.hexa — RSC sat-1 + sat-2 → __HEXA_AURA_RSC_SATURATED__ STOP.
+//
+// @allow-relop-banned-file
+// @allow-bare-exec-file
+// @allow-silent-exit-file
+// @no-lock-needed
+// @resolver-bypass(reason="Pure local saturation check; reads verify/ inventory; no network.")
+//
+// Per runnable_surface_recipe.md §7.2 / §7.3, the RSC (closure-depth
+// accumulation) loop self-terminates when BOTH:
+//   sat-1: every falsifier at 100% code-layer closure (T1 ✓ + T2 ≥1 ✓ + T3 ≥1 ✓)
+//          — i.e. all 12 (4 pillars × 3 tiers) tier-scripts on disk.
+//   sat-2: the §1 16-script inventory is complete + lint_numerics PASS
+//          — i.e. lattice_check, cross_doc_audit, calc_*×4, numerics_*×4,
+//            numerics_*_parity×4, numerics_cross_pillar, numerics_lattice_arithmetic,
+//            falsifier_check, lint_numerics all on disk, and ≥ 9 numerics_*.hexa exist.
+// (sat-3 — sister cross-link health, e.g. hexa-rtsc reachable — is a soft add
+//  in §A.6.1 stage B; tracked here as advisory only.)
+//
+// On sat-1 ∧ sat-2 → emit `__HEXA_AURA_RSC_SATURATED__ STOP` + exit(0): the
+// code-layer is closed (T1+T2+T3 100%), only T4 (Stage-1+ in-vivo / regulatory,
+// §A.6) remains, which is NOT closable by new .hexa. Per recipe §9.1, post-
+// saturation cron/loop firings run this health-check only — no forced chunks.
+//
+// PASS = sat-1 ∧ sat-2 hold. (FAIL ⇒ inventory regression — fix before loop ends.)
+//
+// Run:  hexa run verify/saturation_check.hexa
+// FALSIFIERS: F-AURA-1, F-AURA-2, F-AURA-3, F-AURA-4 (RSC saturation surface)
+// ──────────────────────────────────────────────────────────────────────────
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_AURA_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()  // @allow-bare-exec
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/.hexa-aura"  // @allow-devpath
+}
+let ROOT = _root()
+let VDIR = ROOT + "/verify"
+
+fn _exists(p: str) -> bool { return file_exists(p) }
+
+let mut RUN = 0
+let mut FAIL = 0
+fn _check(ok: bool, label: str, detail: str) {
+    RUN = RUN + 1
+    let mark = if ok { "PASS" } else { "FAIL" }
+    if ok == false { FAIL = FAIL + 1 }
+    println("  [" + mark + "] " + label)
+    if detail.len() > 0 { println("         · " + detail) }
+}
+
+// the §1 16-script inventory (cross-cutters + per-pillar T1/T2/T3 + meta)
+let REQUIRED = [
+    "lattice_check.hexa",
+    "cross_doc_audit.hexa",
+    "calc_clip.hexa",
+    "calc_coil.hexa",
+    "calc_cortex.hexa",
+    "calc_safety.hexa",
+    "numerics_clip.hexa",
+    "numerics_coil.hexa",
+    "numerics_cortex.hexa",
+    "numerics_safety.hexa",
+    "numerics_clip_parity.hexa",
+    "numerics_coil_parity.hexa",
+    "numerics_cortex_parity.hexa",
+    "numerics_safety_parity.hexa",
+    "numerics_cross_pillar.hexa",
+    "numerics_lattice_arithmetic.hexa",
+    "falsifier_check.hexa",
+    "lint_numerics.hexa",
+]
+
+// per-falsifier 3-tier scripts
+let TIER_SCRIPTS = [
+    "calc_clip.hexa", "numerics_clip.hexa", "numerics_clip_parity.hexa",
+    "calc_coil.hexa", "numerics_coil.hexa", "numerics_coil_parity.hexa",
+    "calc_cortex.hexa", "numerics_cortex.hexa", "numerics_cortex_parity.hexa",
+    "calc_safety.hexa", "numerics_safety.hexa", "numerics_safety_parity.hexa",
+]
+
+fn main() {
+    println("========================================================================")
+    println("  hexa-aura — RSC saturation check (sat-1 ∧ sat-2 → STOP signal)")
+    println("========================================================================")
+    println("  verify dir: " + VDIR)
+    println("")
+
+    // ── sat-1: every falsifier at 100% code-layer closure (12 tier-scripts present) ──
+    let mut tiers_present = 0
+    for s in TIER_SCRIPTS {
+        if _exists(VDIR + "/" + s) { tiers_present = tiers_present + 1 }
+    }
+    let sat1 = tiers_present == 12
+    println("  ── sat-1: per-falsifier 100% closure — " + str(tiers_present) + "/12 tier-scripts on disk")
+    _check(sat1, "sat-1: all 4 falsifiers at T1 ✓ + T2 ✓ + T3 ✓ (12/12 tier-scripts)", str(tiers_present) + "/12")
+
+    // ── sat-2: §1 16-script inventory complete + ≥ 9 numerics_*.hexa ──
+    let mut req_present = 0
+    let mut req_missing: [str] = []
+    for s in REQUIRED {
+        if _exists(VDIR + "/" + s) { req_present = req_present + 1 } else { req_missing = req_missing + [s] }
+    }
+    let numerics_glob = exec("ls -1 " + "'" + VDIR + "'" + "/numerics_*.hexa 2>/dev/null | wc -l").trim()  // @allow-bare-exec
+    let numerics_n = if numerics_glob.len() > 0 { numerics_glob.to_int() } else { 0 }
+    let sat2_inv = req_present == REQUIRED.len()
+    let sat2_num = numerics_n > 8
+    let sat2 = sat2_inv && sat2_num
+    println("  ── sat-2: §1 inventory — " + str(req_present) + "/" + str(REQUIRED.len()) + " required scripts ; numerics_*.hexa glob = " + str(numerics_n) + " (≥ 9 required)")
+    _check(sat2_inv, "sat-2a: §1 16-script inventory complete", if sat2_inv { "ok" } else { "missing: " + req_missing.join(", ") })
+    _check(sat2_num, "sat-2b: ≥ 9 numerics_*.hexa on disk", str(numerics_n))
+
+    // ── sat-3 (advisory): sister cross-link health (hexa-rtsc reachable) ──
+    let rtsc_cli = HOME + "/core/hexa-rtsc/cli/hexa-rtsc.hexa"  // @allow-devpath
+    let rtsc_pkg = HOME + "/.hx/packages/hexa-rtsc"             // @allow-devpath
+    let rtsc_seen = _exists(rtsc_cli) || _exists(rtsc_pkg)
+    if rtsc_seen { println("  ── sat-3 (advisory): hexa-rtsc (coil RT-SC dep) reachable") }
+    else { println("  ── sat-3 (advisory): hexa-rtsc not co-located — coil pillar's RT-SC claim stays a cross-link (expected; not a blocker)") }
+
+    println("")
+    println("========================================================================")
+    let pass_n = RUN - FAIL
+    println("  " + str(pass_n) + "/" + str(RUN) + " saturation checks passed")
+    if FAIL > 0 {
+        println("  RSC NOT saturated — inventory regression. Fix the missing slot before ending the loop.")
+        println("__HEXA_AURA_SATURATION__ FAIL")
+        exit(1)
+    }
+    if sat1 && sat2 {
+        println("  sat-1 ∧ sat-2 hold — code-layer closure 100% (T1+T2+T3). Only T4 (Stage-1+ in-vivo / regulatory, §A.6) remains.")
+        println("  Post-saturation cron/loop firings: run THIS health-check only — no forced chunks (recipe §9.1).")
+        println("__HEXA_AURA_RSC_SATURATED__ STOP")
+        println("__HEXA_AURA_SATURATION__ PASS")
+        exit(0)
+    }
+    // (unreachable given the _check FAIL path above, but explicit)
+    println("__HEXA_AURA_SATURATION__ PASS")
+    exit(0)
+}

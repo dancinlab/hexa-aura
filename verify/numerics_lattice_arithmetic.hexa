@@ -1,0 +1,105 @@
+#!hexa strict
+// ──────────────────────────────────────────────────────────────────────────
+// hexa-aura/verify/numerics_lattice_arithmetic.hexa — n=6 lattice float↔int precision floor (cross-cutter).
+//
+// @allow-relop-banned-file
+// @allow-bare-exec-file
+// @allow-silent-exit-file
+// @no-lock-needed
+// @resolver-bypass(reason="Pure local numerics; math_pure stability floor; no doc reads required.")
+//
+// Domain-independent cross-checker (shared across all hexa-* projects per
+// runnable_surface_recipe.md §6): verifies that the math_pure float primitives
+// (sqrt_pure / pow_pure / log_pure / exp_pure) reproduce the n=6 lattice
+// integer anchors to < 1e-9, so every downstream numerics_*.hexa rests on a
+// stable arithmetic floor:
+//   · sqrt_pure(σ²) = σ ; sqrt_pure(σ³)·sqrt_pure(σ) = σ²
+//   · pow_pure(σ, 2) = σ² ; pow_pure(σ, 3) = σ³ ; pow_pure(n, 4) = n^τ = 1296
+//   · pow_pure(σ-φ, 2) = 100 (the "10× lever" squared) ; pow_pure(σ-φ, 6) = 10⁶
+//   · exp_pure(log_pure(x)) = x for x ∈ {σ, τ, φ, sopfr, J₂, n^τ, σ³}
+//   · log_pure(σ²) = 2·log_pure(σ) ; log10(σ³) = 3·log10(σ)
+//   · int round-trip: float(int(σ·n/10·10)) = 72 ; float(int(J₂·0.15·100)) = 360
+//
+// PASS = every identity holds to < 1e-9 relative tolerance.
+//
+// Run:  hexa run verify/numerics_lattice_arithmetic.hexa
+// FALSIFIERS: F-AURA-1, F-AURA-2, F-AURA-3, F-AURA-4 (math_pure precision-floor surface for all downstream numerics)
+// ──────────────────────────────────────────────────────────────────────────
+
+use "self/runtime/math_pure"
+
+let mut RUN = 0
+let mut FAIL = 0
+fn _check(ok: bool, label: str, detail: str) {
+    RUN = RUN + 1
+    let mark = if ok { "PASS" } else { "FAIL" }
+    if ok == false { FAIL = FAIL + 1 }
+    println("  [" + mark + "] " + label)
+    if detail.len() > 0 { println("         · " + detail) }
+}
+fn _eq(a: float, b: float) -> bool {
+    let d = abs_f(a - b)
+    let s = abs_f(b)
+    if s < 1.0e-15 { return d < 1.0e-9 }
+    return (d / s) < 1.0e-9
+}
+fn _log10(x: float) -> float { return log_pure(x) / log_pure(10.0) }
+
+// n=6 lattice
+let N = 6.0
+let SIGMA = 12.0
+let TAU = 4.0
+let PHI = 2.0
+let SOPFR = 5.0
+let J2 = 24.0
+let S2 = 144.0
+let S3 = 1728.0
+let N4 = 1296.0
+let SPHI = 10.0          // σ - φ
+
+fn main() {
+    println("========================================================================")
+    println("  hexa-aura — n=6 lattice float↔int precision floor (math_pure stability)")
+    println("========================================================================")
+    println("")
+
+    // ── sqrt ──
+    _check(_eq(sqrt_pure(S2), SIGMA), "sqrt_pure(σ²=144) = σ = 12", "got " + str(sqrt_pure(S2)))
+    _check(_eq(sqrt_pure(S3) * sqrt_pure(SIGMA), S2), "sqrt_pure(σ³)·sqrt_pure(σ) = σ²=144", "")
+    _check(_eq(sqrt_pure(N4), N * N), "sqrt_pure(n^τ=1296) = n² = 36", "")
+
+    // ── pow ──
+    _check(_eq(pow_pure(SIGMA, 2.0), S2), "pow_pure(σ, 2) = 144", "")
+    _check(_eq(pow_pure(SIGMA, 3.0), S3), "pow_pure(σ, 3) = 1728", "")
+    _check(_eq(pow_pure(N, 4.0), N4), "pow_pure(n, 4) = n^τ = 1296", "")
+    _check(_eq(pow_pure(SPHI, 2.0), 100.0), "pow_pure(σ-φ, 2) = 100 (the 10× lever, squared)", "")
+    _check(_eq(pow_pure(SPHI, 6.0), 1000000.0), "pow_pure(σ-φ, 6) = 10⁶", "")
+    _check(_eq(pow_pure(2.0, 3.0) + pow_pure(3.0, 1.0), 11.0), "pow_pure sanity: 2³ + 3 = 11", "")
+
+    // ── exp ∘ log round-trip ──
+    let xs = [SIGMA, TAU, PHI, SOPFR, J2, N4, S3]
+    for x in xs { _check(_eq(exp_pure(log_pure(x)), x), "exp_pure(log_pure(" + str(x) + ")) = " + str(x), "round-trip") }
+
+    // ── log identities ──
+    _check(_eq(log_pure(S2), 2.0 * log_pure(SIGMA)), "log_pure(σ²) = 2·log_pure(σ)", "")
+    _check(_eq(_log10(S3), 3.0 * _log10(SIGMA)), "log10(σ³) = 3·log10(σ)", "")
+    _check(_eq(_log10(100.0), 2.0), "log10(100) = 2 (the lever-squared exponent)", "")
+
+    // ── int round-trips ──
+    let a = SIGMA * N / 10.0 * 10.0          // 72.0
+    _check(_eq(a, 72.0) && int(a) == 72, "float(int(σ·n/10·10)) = 72 (clip-pair tenths-of-gram)", "")
+    let b = J2 * 0.15 * 100.0                // 360.0
+    _check(_eq(b, 360.0) && int(b) == 360, "float(int(J₂·0.15·100)) = 360 (3.6 g/side ×100)", "")
+
+    // ── the closure, once more, with the float primitives ──
+    _check(_eq(SIGMA * PHI, N * TAU) && _eq(SIGMA * PHI, J2) && _eq(2.0 * SIGMA, J2), "closure σ·φ = n·τ = 2σ = J₂ = 24 (float primitives)", "")
+
+    println("")
+    println("========================================================================")
+    let pass_n = RUN - FAIL
+    println("  " + str(pass_n) + "/" + str(RUN) + " precision-floor checks passed (< 1e-9 rel. tol.)")
+    if FAIL > 0 { println("__HEXA_AURA_NUMERICS_LATTICE__ FAIL"); exit(1) }
+    println("  math_pure float primitives reproduce the n=6 integer anchors — downstream numerics rest on a stable floor.")
+    println("__HEXA_AURA_NUMERICS_LATTICE__ PASS")
+    exit(0)
+}

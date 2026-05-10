@@ -1,0 +1,88 @@
+#!hexa strict
+// ──────────────────────────────────────────────────────────────────────────
+// hexa-aura/tests/test_cli_verify.hexa — CLI surface regression.
+//
+// @allow-relop-banned-file
+// @allow-bare-exec-file
+// @allow-silent-exit-file
+//
+// Validates that the user-facing CLI faithfully exposes the underlying
+// contract — catches dispatcher refactors that silently skip a verify script
+// or drop a pillar verb:
+//   1. `hexa-aura selftest`     -> `__HEXA_AURA_SELFTEST__ PASS` + 4 pillar + 5 atlas
+//   2. `hexa-aura status`       -> names all 4 falsifiers F-AURA-1..4 + verdict SPEC_FIRST_RSC
+//   3. `hexa-aura clip|coil|cortex|safety` -> each emits its `__HEXA_AURA_<VERB>__ PASS`
+//   4. `hexa-aura verify all`   -> aggregate exit 0, all 19 verify scripts PASS
+//   5. `hexa-aura verify lattice` -> `__HEXA_AURA_LATTICE__ PASS` (delegation OK)
+//   6. `hexa-aura verify saturation` -> `__HEXA_AURA_RSC_SATURATED__ STOP`
+//
+// Cost: $0.
+// ──────────────────────────────────────────────────────────────────────────
+
+let HOME = env("HOME")
+fn _hexa_bin() -> str {
+    let real = HOME + "/.hx/packages/hexa/hexa.real"  // @allow-devpath
+    if file_exists(real) { return real }
+    let h = exec("which hexa 2>/dev/null").trim()  // @allow-bare-exec
+    if h.len() > 0 { return h }
+    return HOME + "/.hx/bin/hexa"  // @allow-devpath
+}
+
+let mut RUN = 0
+let mut FAIL = 0
+fn _check(ok: bool, label: str, detail: str) {
+    RUN = RUN + 1
+    let mark = if ok { "PASS" } else { "FAIL" }
+    if ok == false { FAIL = FAIL + 1 }
+    println("  [" + mark + "] " + label)
+    if detail.len() > 0 && ok == false { println("         . " + detail) }
+}
+
+fn main() {
+    let mut root = env("HEXA_AURA_ROOT")
+    if root.len() == 0 { root = exec("pwd").trim() }  // @allow-bare-exec
+    let cli = root + "/cli/hexa-aura.hexa"
+    if file_exists(cli) == false { println("test_cli_verify: FAIL — cli/hexa-aura.hexa missing"); exit(1) }
+    let bin = _hexa_bin()
+    let pfx = "HEXA_AURA_ROOT=\"" + root + "\" \"" + bin + "\" run \"" + cli + "\" "
+
+    // 1. selftest
+    let r1 = exec_with_status(pfx + "selftest 2>&1")
+    let o1 = to_string(r1[0])
+    _check(r1[1] == 0 && o1.find("__HEXA_AURA_SELFTEST__ PASS") > -1, "cli selftest -> __HEXA_AURA_SELFTEST__ PASS", o1)
+    _check(o1.find("pillars_present = 4 / 4") > -1 && o1.find("atlas_present   = 5 / 5") > -1, "cli selftest -> 4 pillar + 5 atlas present", o1)
+
+    // 2. status
+    let r2 = exec(pfx + "status 2>&1")  // @allow-bare-exec
+    _check(r2.find("F-AURA-1") > -1 && r2.find("F-AURA-2") > -1 && r2.find("F-AURA-3") > -1 && r2.find("F-AURA-4") > -1, "cli status -> names F-AURA-1/2/3/4", r2)
+    _check(r2.find("SPEC_FIRST_RSC") > -1, "cli status -> verdict SPEC_FIRST_RSC", r2)
+
+    // 3. pillar verbs
+    let verbs = [["clip","__HEXA_AURA_CLIP__ PASS"],["coil","__HEXA_AURA_COIL__ PASS"],["cortex","__HEXA_AURA_CORTEX__ PASS"],["safety","__HEXA_AURA_SAFETY__ PASS"]]
+    for v in verbs {
+        let rv = exec(pfx + v[0] + " 2>&1")  // @allow-bare-exec
+        _check(rv.find(v[1]) > -1, "cli " + v[0] + " -> " + v[1], rv)
+    }
+
+    // 4. verify all
+    let r4 = exec_with_status(pfx + "verify all 2>&1")
+    let o4 = to_string(r4[0])
+    _check(r4[1] == 0, "cli verify all -> exit 0 (all verify scripts PASS)", o4)
+    _check(o4.find("verify all — aggregate") > -1 && o4.find("FAIL:  0/") > -1, "cli verify all -> aggregate 0 FAIL", o4)
+
+    // 5. verify lattice (delegation)
+    let r5 = exec_with_status(pfx + "verify lattice 2>&1")
+    let o5 = to_string(r5[0])
+    _check(r5[1] == 0 && o5.find("__HEXA_AURA_LATTICE__ PASS") > -1, "cli verify lattice -> __HEXA_AURA_LATTICE__ PASS", o5)
+
+    // 6. verify saturation
+    let r6 = exec_with_status(pfx + "verify saturation 2>&1")
+    let o6 = to_string(r6[0])
+    _check(r6[1] == 0 && o6.find("__HEXA_AURA_RSC_SATURATED__ STOP") > -1, "cli verify saturation -> __HEXA_AURA_RSC_SATURATED__ STOP", o6)
+
+    println("")
+    let pass_n = RUN - FAIL
+    println("test_cli_verify: " + str(pass_n) + "/" + str(RUN) + " CLI-surface checks passed")
+    if FAIL > 0 { println("test_cli_verify: FAIL"); exit(1) }
+    println("test_cli_verify: PASS — CLI faithfully exposes the verify contract + pillar verbs")
+}

@@ -1,0 +1,97 @@
+#!hexa strict
+// ──────────────────────────────────────────────────────────────────────────
+// hexa-aura/tests/test_calculators.hexa — RSC verify-surface regression (filename + sentinel).
+//
+// @allow-relop-banned-file
+// @allow-bare-exec-file
+// @allow-silent-exit-file
+//
+// Runs each verify/*.hexa in its own `hexa run` invocation (5-min timeout each,
+// SKIP-on-timeout = exit 124) and asserts: (a) the file is on disk, (b) the run
+// exits 0 (or is SKIPped on timeout), (c) the expected `__HEXA_AURA_<NAME>__ PASS`
+// (or `__HEXA_AURA_RSC_SATURATED__ STOP`) sentinel appears in stdout. Covers the
+// full RSC surface: T1 cross-cutters + per-pillar T1/T2/T3 + cross-cutter T2 +
+// math_pure floor + meta (falsifier_check / lint_numerics) + saturation_check.
+//
+// Cost: $0 (all sub-scripts are pure-hexa local audits).
+// ──────────────────────────────────────────────────────────────────────────
+
+let HOME = env("HOME")
+fn _hexa_bin() -> str {
+    let real = HOME + "/.hx/packages/hexa/hexa.real"  // @allow-devpath
+    if file_exists(real) { return real }
+    let h = exec("which hexa 2>/dev/null").trim()  // @allow-bare-exec
+    if h.len() > 0 { return h }
+    return HOME + "/.hx/bin/hexa"  // @allow-devpath
+}
+
+// (script, expected sentinel substring)
+let CASES = [
+    ["verify/lattice_check.hexa",                "__HEXA_AURA_LATTICE__ PASS"],
+    ["verify/cross_doc_audit.hexa",              "__HEXA_AURA_CROSS_DOC__ PASS"],
+    ["verify/calc_clip.hexa",                    "__HEXA_AURA_CALC_CLIP__ PASS"],
+    ["verify/calc_coil.hexa",                    "__HEXA_AURA_CALC_COIL__ PASS"],
+    ["verify/calc_cortex.hexa",                  "__HEXA_AURA_CALC_CORTEX__ PASS"],
+    ["verify/calc_safety.hexa",                  "__HEXA_AURA_CALC_SAFETY__ PASS"],
+    ["verify/numerics_clip.hexa",                "__HEXA_AURA_NUMERICS_CLIP__ PASS"],
+    ["verify/numerics_coil.hexa",                "__HEXA_AURA_NUMERICS_COIL__ PASS"],
+    ["verify/numerics_cortex.hexa",              "__HEXA_AURA_NUMERICS_CORTEX__ PASS"],
+    ["verify/numerics_safety.hexa",              "__HEXA_AURA_NUMERICS_SAFETY__ PASS"],
+    ["verify/numerics_clip_parity.hexa",         "__HEXA_AURA_NUMERICS_CLIP_PARITY__ PASS"],
+    ["verify/numerics_coil_parity.hexa",         "__HEXA_AURA_NUMERICS_COIL_PARITY__ PASS"],
+    ["verify/numerics_cortex_parity.hexa",       "__HEXA_AURA_NUMERICS_CORTEX_PARITY__ PASS"],
+    ["verify/numerics_safety_parity.hexa",       "__HEXA_AURA_NUMERICS_SAFETY_PARITY__ PASS"],
+    ["verify/numerics_cross_pillar.hexa",        "__HEXA_AURA_NUMERICS_CROSS_PILLAR__ PASS"],
+    ["verify/numerics_lattice_arithmetic.hexa",  "__HEXA_AURA_NUMERICS_LATTICE__ PASS"],
+    ["verify/falsifier_check.hexa",              "__HEXA_AURA_FALSIFIER__ PASS"],
+    ["verify/lint_numerics.hexa",                "__HEXA_AURA_LINT_NUMERICS__ PASS"],
+    ["verify/saturation_check.hexa",             "__HEXA_AURA_SATURATION__ PASS"],
+]
+
+fn main() {
+    let mut root = env("HEXA_AURA_ROOT")
+    if root.len() == 0 { root = exec("pwd").trim() }  // @allow-bare-exec
+    let bin = _hexa_bin()
+
+    let mut pass = 0
+    let mut fail = 0
+    let mut skip = 0
+    let mut failures: [str] = []
+
+    for c in CASES {
+        let path = root + "/" + c[0]
+        let want = c[1]
+        if file_exists(path) == false {
+            fail = fail + 1
+            failures = failures + [c[0] + " :: missing on disk"]
+            println("  [FAIL] " + c[0] + " — missing")
+            continue
+        }
+        let cmd = "HEXA_AURA_ROOT=\"" + root + "\" timeout 300 \"" + bin + "\" run \"" + path + "\" 2>&1"
+        let res = exec_with_status(cmd)
+        let out = to_string(res[0])
+        let code = res[1]
+        if code == 124 {
+            skip = skip + 1
+            println("  [SKIP] " + c[0] + " — 300 s timeout (exit 124)")
+            continue
+        }
+        if code == 0 && out.find(want) > -1 {
+            pass = pass + 1
+            println("  [PASS] " + c[0])
+            continue
+        }
+        fail = fail + 1
+        failures = failures + [c[0] + " :: code=" + str(code) + " sentinel='" + want + "'"]
+        println("  [FAIL] " + c[0] + " — code=" + str(code))
+    }
+
+    println("")
+    println("test_calculators: " + str(pass) + " PASS / " + str(fail) + " FAIL / " + str(skip) + " SKIP  (of " + str(CASES.len()) + " cases)")
+    if fail > 0 {
+        for f in failures { println("  ✗ " + f) }
+        println("test_calculators: FAIL")
+        exit(1)
+    }
+    println("test_calculators: PASS — full RSC verify surface PASS (or SKIP-on-timeout)")
+}

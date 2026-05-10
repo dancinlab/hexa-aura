@@ -1,0 +1,152 @@
+#!hexa strict
+// ──────────────────────────────────────────────────────────────────────────
+// hexa-aura/verify/numerics_clip.hexa — pillar 1 (clip) closed-form numerics (T2).
+//
+// @allow-relop-banned-file
+// @allow-bare-exec-file
+// @allow-silent-exit-file
+// @no-lock-needed
+// @resolver-bypass(reason="Pure local numerics; reads pillar doc only.")
+//
+// Beyond calc_clip.hexa (integer identities), this re-derives the clip's
+// load-bearing physical quantities with math_pure float arithmetic:
+//   1. pair mass 7.2 g sits inside the "barely-felt all-day BTE" band [2.5, 12] g
+//      (BTE hearing aid 2.5–4 g / Cochlear-N7 9 g / AirPods-Pro 5.4 g pair).
+//   2. anchor contact pressure: p = F / A — a τ=4-point sprung anchor holding
+//      3.6 g·g_earth distributed over the contact pad areas keeps p < the
+//      capillary-occlusion threshold (~32 mmHg ≈ 4266 Pa).
+//   3. bone-conduction transmission through a sopfr=5 mm temporal-bone path:
+//      a 1-D acoustic impedance-mismatch loss model bounds the insertion loss.
+//   4. moment-of-inertia sanity: a J₂≤24 mm clip body at hearing-aid density
+//      has rotational inertia low enough not to swing on jaw motion.
+//
+// PASS = every quantity lands inside the design band. (T2 — F-AURA-1a/1b/1c
+// stay OPEN; this is closed-form internal consistency, not a built clip.)
+//
+// Run:  hexa run verify/numerics_clip.hexa
+// Authority: clip/doc/mastoid-clip.md (§2 / §6) + .roadmap.hexa_aura §B.1.
+// FALSIFIERS: F-AURA-1, F-AURA-1a, F-AURA-1b, F-AURA-1c (T2 closed-form surface)
+// ──────────────────────────────────────────────────────────────────────────
+
+use "self/runtime/math_pure"
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_AURA_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()  // @allow-bare-exec
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/.hexa-aura"  // @allow-devpath
+}
+let ROOT = _root()
+let DOC = ROOT + "/clip/doc/mastoid-clip.md"
+fn _read(p: str) -> str { if file_exists(p) == false { return "" } return read_file(p) }
+fn _has(t: str, s: str) -> bool { if t.len() == 0 { return false } return t.find(s) > -1 }
+
+let mut RUN = 0
+let mut FAIL = 0
+fn _check(ok: bool, label: str, detail: str) {
+    RUN = RUN + 1
+    let mark = if ok { "PASS" } else { "FAIL" }
+    if ok == false { FAIL = FAIL + 1 }
+    println("  [" + mark + "] " + label)
+    if detail.len() > 0 { println("         · " + detail) }
+}
+fn _approx(a: float, b: float, tol_rel: float) -> bool {
+    let d = abs_f(a - b)
+    let scale = abs_f(b)
+    if scale < 1.0e-12 { return d < tol_rel }
+    return (d / scale) < tol_rel
+}
+
+// constants
+let G_EARTH = 9.80665                // m/s²
+let MMHG_TO_PA = 133.322             // Pa per mmHg
+let CAP_OCCL_MMHG = 32.0             // capillary-occlusion threshold
+let RHO_BTE = 1200.0                 // kg/m³ — hearing-aid-grade plastic/PCB composite density
+
+// n=6 anchors (float)
+let SIGMA = 12.0
+let N = 6.0
+let TAU = 4.0
+let PHI = 2.0
+let CLIP_MASS_KG = (SIGMA * N / 10.0) / 1000.0   // σ·n/10 = 3.6 g → kg
+let PAIR_MASS_G = 2.0 * (SIGMA * N / 10.0)        // 7.2 g
+
+fn main() {
+    println("========================================================================")
+    println("  hexa-aura · pillar 1 (clip) — closed-form numerics (T2 / F-AURA-1)")
+    println("========================================================================")
+    println("")
+
+    // ── 1. pair mass inside the all-day BTE band ──
+    let band_lo = 2.5
+    let band_hi = 12.0
+    _check(PAIR_MASS_G > band_lo && PAIR_MASS_G < band_hi,
+           "pair mass " + str(PAIR_MASS_G) + " g inside all-day BTE band [2.5, 12] g",
+           "BTE aid 2.5–4 g / AirPods-Pro 5.4 g pair / Cochlear-N7 9 g")
+    _check(_approx(PAIR_MASS_G, 7.2, 1.0e-9), "pair mass = n·n/10·... = 7.2 g exact", "σ·n/10·2 = " + str(PAIR_MASS_G))
+
+    // ── 2. anchor contact pressure ──
+    // τ=4 sprung soft pads; each pad ≈ 25 mm² = 2.5e-5 m² (a ~5×5 mm contact, BTE-clip realistic).
+    let pad_area_m2 = 2.5e-5
+    let total_area_m2 = TAU * pad_area_m2          // 1.0e-4 m²
+    let weight_n = CLIP_MASS_KG * G_EARTH          // ~0.0353 N for 3.6 g
+    // worst case: half the weight on one pad during jaw motion (×2 factor)
+    let p_worst_pa = (2.0 * weight_n) / pad_area_m2
+    let cap_pa = CAP_OCCL_MMHG * MMHG_TO_PA        // ~4266 Pa
+    _check(p_worst_pa < cap_pa,
+           "worst-case anchor pressure " + str(p_worst_pa) + " Pa < capillary-occlusion " + str(cap_pa) + " Pa",
+           "τ=4 sprung pads, ~6 mm² each, 2× safety; no pressure necrosis on continuous wear")
+    // nominal (even distribution): well below
+    let p_nom_pa = weight_n / total_area_m2
+    let p_nom_mmhg = p_nom_pa / MMHG_TO_PA
+    _check(p_nom_mmhg < 20.0, "nominal anchor pressure " + str(p_nom_mmhg) + " mmHg < 20 mmHg design target", "")
+
+    // ── 3. bone-conduction insertion loss through sopfr=5 mm temporal bone ──
+    // 1-D plane-wave power transmission across two impedance steps (soft tissue → bone → soft tissue).
+    // Z_soft ≈ 1.5e6 Rayl ; Z_bone ≈ 7.8e6 Rayl. Single interface power transmission:
+    //   T = 4·Z1·Z2 / (Z1+Z2)²
+    let z_soft = 1.5e6
+    let z_bone = 7.8e6
+    let t_one = (4.0 * z_soft * z_bone) / pow_pure(z_soft + z_bone, 2.0)
+    let t_two = t_one * t_one                       // soft→bone and bone→soft
+    // also a frequency-independent attenuation over sopfr=5 mm at α ≈ 100 dB/m → 0.5 dB over 5 mm — negligible
+    let atten_db = 100.0 * (5.0 / 1000.0)
+    // total insertion loss in dB
+    let il_db = -10.0 * (log_pure(t_two) / log_pure(10.0)) + atten_db
+    _check(il_db < 25.0,
+           "bone-conduction insertion loss " + str(il_db) + " dB through sopfr=5 mm temporal bone < 25 dB",
+           "Z_soft 1.5e6 / Z_bone 7.8e6 Rayl, 2-interface power transmission + 0.5 dB tissue α")
+    _check(t_one > 0.0 && t_one < 1.0, "single-interface power transmission " + str(t_one) + " in (0,1)", "T = 4Z1Z2/(Z1+Z2)²")
+
+    // ── 4. rotational inertia sanity (won't swing on jaw motion) ──
+    // model the clip as a thin rod of length L = J₂ = 24 mm = 0.024 m, mass 3.6 g, about one end:
+    //   I = (1/3)·m·L²
+    let L_m = 24.0 / 1000.0
+    let I = (1.0 / 3.0) * CLIP_MASS_KG * pow_pure(L_m, 2.0)
+    // jaw angular accel ~ small; required restoring torque from a τ=4 anchor with ~0.05 N pads at 10 mm arm:
+    let restoring_torque = TAU * 0.05 * 0.010       // 4 pads × 0.05 N × 10 mm
+    // angular accel the anchor can resist:
+    let alpha_max = restoring_torque / I
+    _check(alpha_max > 50.0,
+           "anchor angular-accel margin " + str(alpha_max) + " rad/s² > 50 rad/s² (chewing ~1–5 Hz, ~few rad/s²)",
+           "I = (1/3)·m·L² with L = J₂ = 24 mm; τ=4 anchor torque ≫ jaw disturbance")
+    _check(I > 0.0, "clip rotational inertia I = " + str(I) + " kg·m² (thin-rod model, L = J₂ = 24 mm)", "")
+
+    println("")
+    let t = _read(DOC)
+    _check(t.len() > 0, "clip pillar doc present", DOC)
+    _check(_has(t, "AirPods") || _has(t, "BTE") || _has(t, "hearing"), "doc cites BTE / AirPods mass reference for the band", "")
+    _check(_has(t, "capillary") || _has(t, "20 mmHg") || _has(t, "pressure"), "doc states the anchor-pressure limit", "")
+
+    println("")
+    println("========================================================================")
+    let pass_n = RUN - FAIL
+    println("  " + str(pass_n) + "/" + str(RUN) + " numeric checks passed")
+    if FAIL > 0 { println("__HEXA_AURA_NUMERICS_CLIP__ FAIL"); exit(1) }
+    println("  clip mass / anchor pressure / bone-conduction loss / inertia all land inside the design band.")
+    println("  (T2 — F-AURA-1a/1b/1c stay OPEN; closed-form internal consistency, not a built clip.)")
+    println("__HEXA_AURA_NUMERICS_CLIP__ PASS")
+    exit(0)
+}

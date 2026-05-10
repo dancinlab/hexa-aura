@@ -1,0 +1,145 @@
+#!hexa strict
+// ──────────────────────────────────────────────────────────────────────────
+// hexa-aura/verify/numerics_coil.hexa — pillar 2 (coil) closed-form numerics (T2).
+//
+// @allow-relop-banned-file
+// @allow-bare-exec-file
+// @allow-silent-exit-file
+// @no-lock-needed
+// @resolver-bypass(reason="Pure local numerics; reads pillar doc only.")
+//
+// Beyond calc_coil.hexa (integer channel-topology identities), this re-derives
+// the coil's load-bearing transducer quantities with math_pure float math:
+//   1. channel-count ratios: 1296 / 1024 (Neuralink-N1), 144 / 96 (Utah array),
+//      144 / 16 (Stentrode) — all > 1, i.e. the n=6 lattice is parity-or-better.
+//   2. low-frequency skin depth in tissue/bone: δ = √(2/(ω·μ₀·σ)) for f ≈ 1 kHz,
+//      σ ≈ 0.1 S/m ⇒ δ ≫ 5 mm ⇒ the sopfr=5 mm bone path is near-lossless for
+//      the magnetic read/write fields (this is the whole reason a behind-the-ear
+//      coil can reach cortex at all).
+//   3. read-side SNR: a zero-resistance superconducting pick-up loop has its
+//      noise floor set by the SQUID/SQIF readout stage (~few fT/√Hz), not loop
+//      Johnson-Nyquist; for an MEG-class cortical magnetic signal (~0.1–1 pT)
+//      in a 100 Hz read bandwidth, SNR ≫ 1.
+//   4. write-side focal contrast: a μ=1 μm-pitch tile beamformed to a
+//      σ³=1728-equivalent array, treated as a near-field dipole sheet at depth
+//      r ≈ 5 mm, gives an adjacent-cortical-column (Δr ≈ 0.5 mm) field contrast
+//      ≈ 3·Δr/r ≈ 0.3 ⇒ usable column-scale write selectivity.
+//   5. read frame 200 Hz = 1/(sopfr ms); 6 micro-tiles → 24 ch/macro read-mux.
+//
+// PASS = every quantity lands inside the design band. (T2 — F-AURA-2a/2b/2c
+// stay OPEN; closed-form internal consistency, NOT a built tile and NOT the
+// RT-SC material claim, which is deferred to hexa-rtsc.)
+//
+// Run:  hexa run verify/numerics_coil.hexa
+// Authority: coil/doc/rt-sc-nanocoil.md (§1 / §2 / §6) + .roadmap.hexa_aura §B.2.
+// FALSIFIERS: F-AURA-2, F-AURA-2a, F-AURA-2b, F-AURA-2c (T2 closed-form surface)
+// ──────────────────────────────────────────────────────────────────────────
+
+use "self/runtime/math_pure"
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_AURA_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()  // @allow-bare-exec
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/.hexa-aura"  // @allow-devpath
+}
+let ROOT = _root()
+let DOC = ROOT + "/coil/doc/rt-sc-nanocoil.md"
+fn _read(p: str) -> str { if file_exists(p) == false { return "" } return read_file(p) }
+fn _has(t: str, s: str) -> bool { if t.len() == 0 { return false } return t.find(s) > -1 }
+
+let mut RUN = 0
+let mut FAIL = 0
+fn _check(ok: bool, label: str, detail: str) {
+    RUN = RUN + 1
+    let mark = if ok { "PASS" } else { "FAIL" }
+    if ok == false { FAIL = FAIL + 1 }
+    println("  [" + mark + "] " + label)
+    if detail.len() > 0 { println("         · " + detail) }
+}
+
+// physical constants
+let MU0 = 1.25663706212e-6           // T·m/A
+let PI = 3.14159265358979323846
+
+// n=6 anchors
+let SIGMA = 12.0
+let N = 6.0
+let TAU = 4.0
+let CH_TILE = 144.0                  // σ²
+let CH_MACRO = 24.0                  // J₂
+let CH_HEX = 1296.0                  // n^τ = 6⁴
+let CH_VIRT = 1728.0                 // σ³
+
+fn main() {
+    println("========================================================================")
+    println("  hexa-aura · pillar 2 (coil) — closed-form numerics (T2 / F-AURA-2)")
+    println("========================================================================")
+    println("")
+
+    // ── 1. channel-count ratios vs published systems ──
+    let r_neuralink = CH_HEX / 1024.0
+    let r_utah = CH_TILE / 96.0
+    let r_stentrode = CH_TILE / 16.0
+    _check(r_neuralink > 1.0, "n^τ=1296 / Neuralink-N1 1024 = " + str(r_neuralink) + " > 1 (parity+)", "")
+    _check(r_utah > 1.0, "σ²=144 ch/tile / Utah array 96 = " + str(r_utah) + " > 1", "")
+    _check(r_stentrode > 1.0, "σ²=144 ch/tile / Stentrode 16 = " + str(r_stentrode) + " > 1", "")
+
+    // ── 2. low-frequency skin depth in tissue/bone (~near-lossless 5 mm path) ──
+    let f_hz = 1000.0                 // representative read/write band
+    let sigma_tissue = 0.1            // S/m (bone/soft tissue conductivity, low-MHz-and-below)
+    let omega = 2.0 * PI * f_hz
+    let delta_m = sqrt_pure(2.0 / (omega * MU0 * sigma_tissue))
+    let bone_path_m = 5.0 / 1000.0    // sopfr = 5 mm
+    _check(delta_m > 100.0 * bone_path_m,
+           "skin depth δ = " + str(delta_m) + " m ≫ 100× the sopfr=5 mm bone path",
+           "δ = √(2/(ωμ₀σ)), f=1 kHz, σ=0.1 S/m ⇒ near-lossless magnetic coupling through bone")
+    // attenuation over 5 mm: exp(-d/δ) ≈ 1
+    let atten = exp_pure(-bone_path_m / delta_m)
+    _check(atten > 0.999, "field amplitude after 5 mm bone = " + str(atten) + " of incident (> 0.999)", "")
+
+    // ── 3. read-side SNR (superconducting pick-up loop, SQUID-stage-limited) ──
+    let signal_T = 0.5e-12            // cortical magnetic signal at scalp ≈ 0.5 pT (MEG range)
+    let noise_density_T = 5.0e-15     // SQUID-class readout floor ≈ 5 fT/√Hz
+    let bw_hz = 100.0                 // read bandwidth (consistent with 200 Hz frame)
+    let noise_T = noise_density_T * sqrt_pure(bw_hz)
+    let snr_read = signal_T / noise_T
+    _check(snr_read > 1.0, "read SNR = " + str(snr_read) + " > 1 (0.5 pT signal vs 5 fT/√Hz × √100 Hz)", "zero loop resistance ⇒ SQUID-stage-limited, not Johnson-Nyquist")
+    _check(snr_read > 5.0, "read SNR " + str(snr_read) + " > 5 (decode-grade)", "")
+
+    // ── 4. write-side focal contrast at column scale ──
+    // near-field dipole sheet at depth r; field ∝ 1/r³ ⇒ d|B|/|B| ≈ -3·dr/r between two
+    // points separated by dr = adjacent cortical column ≈ 0.5 mm at r = 5 mm depth.
+    let r_depth_mm = 5.0
+    let col_sep_mm = 0.5
+    let focal_contrast = 3.0 * (col_sep_mm / r_depth_mm)
+    _check(focal_contrast > 0.1, "adjacent-column write contrast ≈ 3·Δr/r = " + str(focal_contrast) + " > 0.1 (usable selectivity)", "near-field 1/r³ dipole-sheet model, Δr = 0.5 mm column, r = 5 mm depth")
+    // beamforming gain: a σ³=1728-equivalent coherent array narrows the focal spot ∝ √N relative to a single tile
+    let beamform_gain = sqrt_pure(CH_VIRT / CH_TILE)   // √(1728/144) = √12 ≈ 3.46
+    _check(beamform_gain > 3.0, "σ³=1728-equiv beamforming spot-narrowing factor √(1728/144) = " + str(beamform_gain) + " > 3 vs single tile", "")
+
+    // ── 5. read frame + macro-tile read-mux ──
+    let frame_hz = 1000.0 / 5.0       // 1/(sopfr ms)
+    _check(frame_hz > 199.0 && frame_hz < 201.0, "read frame rate = 1/(sopfr=5 ms) = " + str(frame_hz) + " Hz", "")
+    let ch_per_macro = (6.0 * CH_TILE) / 36.0          // 864/36 = 24
+    _check(ch_per_macro > 23.9 && ch_per_macro < 24.1, "6 micro-tiles (864 ch) → 24 ch/macro after 36:1 read-mux = " + str(ch_per_macro), "")
+
+    println("")
+    let t = _read(DOC)
+    _check(t.len() > 0, "coil pillar doc present", DOC)
+    _check(_has(t, "SQUID") || _has(t, "OPM") || _has(t, "fT"), "doc cites SQUID/OPM-MEG read-sensitivity reference", "")
+    _check(_has(t, "TMS"), "doc cites TMS write-field reference", "")
+    _check(_has(t, "hexa-rtsc"), "doc cross-links hexa-rtsc for the RT-SC material claim", "")
+
+    println("")
+    println("========================================================================")
+    let pass_n = RUN - FAIL
+    println("  " + str(pass_n) + "/" + str(RUN) + " numeric checks passed")
+    if FAIL > 0 { println("__HEXA_AURA_NUMERICS_COIL__ FAIL"); exit(1) }
+    println("  channel ratios / skin depth / read SNR / write focal contrast / frame rate all inside the design band.")
+    println("  (T2 — F-AURA-2a/2b/2c stay OPEN; RT-SC material deferred to hexa-rtsc; not a built tile.)")
+    println("__HEXA_AURA_NUMERICS_COIL__ PASS")
+    exit(0)
+}

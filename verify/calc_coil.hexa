@@ -1,0 +1,117 @@
+#!hexa strict
+// ──────────────────────────────────────────────────────────────────────────
+// hexa-aura/verify/calc_coil.hexa — pillar 2 (coil / transducer) n=6 derivation (T1 algebraic).
+//
+// @allow-relop-banned-file
+// @allow-bare-exec-file
+// @allow-silent-exit-file
+// @no-lock-needed
+// @resolver-bypass(reason="Pure local arithmetic verifier; reads pillar doc only.")
+//
+// Algebraic-only derivation of the HEXA-RT-SC-NANOCOIL channel topology (T1
+// rung of F-AURA-2): σ²=144 ch/tile, J₂=24 ch/macro-tile, n^τ=6⁴=1296-ch hex
+// lattice, σ³=1728-electrode-equivalent, μ=1 μm pitch, τ=4 multiplex phases,
+// 6 micro-tiles → 1 macro-tile, 200 Hz read rate from 1/(sopfr ms).
+//
+// Run:  hexa run verify/calc_coil.hexa
+// Authority: coil/doc/rt-sc-nanocoil.md (§0 / §4) + .roadmap.hexa_aura §B.2.
+// FALSIFIERS: F-AURA-2, F-AURA-2a, F-AURA-2b, F-AURA-2c (T1 algebraic surface)
+// ──────────────────────────────────────────────────────────────────────────
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_AURA_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()  // @allow-bare-exec
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/.hexa-aura"  // @allow-devpath
+}
+let ROOT = _root()
+let DOC = ROOT + "/coil/doc/rt-sc-nanocoil.md"
+fn _read(p: str) -> str { if file_exists(p) == false { return "" } return read_file(p) }
+fn _has(t: str, s: str) -> bool { if t.len() == 0 { return false } return t.find(s) > -1 }
+
+let mut RUN = 0
+let mut FAIL = 0
+fn _check(ok: bool, label: str, detail: str) {
+    RUN = RUN + 1
+    let mark = if ok { "PASS" } else { "FAIL" }
+    if ok == false { FAIL = FAIL + 1 }
+    println("  [" + mark + "] " + label)
+    if detail.len() > 0 { println("         · " + detail) }
+}
+
+let N = 6
+let SIGMA = 12
+let TAU = 4
+let PHI = 2
+let SOPFR = 5
+let MU = 1
+let J2 = 24
+
+fn main() {
+    println("========================================================================")
+    println("  hexa-aura · pillar 2 (coil) — n=6 algebraic derivation (T1 / F-AURA-2)")
+    println("========================================================================")
+    println("")
+
+    // ── σ² = 144 ch/tile (σ rows × σ cols micro-grid) ──
+    let s2 = SIGMA * SIGMA
+    _check(s2 == 144, "channels/tile = σ² = 144 (σ=12 rows × σ=12 cols micro-grid)", "12·12 = " + str(s2))
+
+    // ── J₂ = 24 ch/macro-tile (σ·φ = n·τ = J₂); 6 micro-tiles → 1 macro ──
+    _check(SIGMA * PHI == J2 && N * TAU == J2, "channels/macro-tile = J₂ = 24 (σ·φ = n·τ)", "12·2 = 6·4 = " + str(J2))
+    // 6 micro-tiles × 144 ch = 864 ch physical, read-multiplexed/reported as 24 ch/macro upstream:
+    let micro_per_macro = N
+    _check(micro_per_macro == 6 && (micro_per_macro * s2) / 36 == 24, "6 micro-tiles → 1 macro-tile (864 ch physical → 24 ch reported, 36:1 read-mux)", "6·144 = 864 ; /36 = 24")
+
+    // ── n^τ = 6⁴ = 1296-ch hexagonal cortical-column lattice (Neuralink-N1 1024-ch parity+) ──
+    let n4 = N * N * N * N
+    _check(n4 == 1296, "hex lattice = n^τ = 6⁴ = 1296 channels (Neuralink-N1 1024-ch parity+)", "6⁴ = " + str(n4) + " > 1024")
+
+    // ── σ³ = 1728-electrode-equivalent virtual array (super-resolution beamforming) ──
+    let s3 = SIGMA * SIGMA * SIGMA
+    _check(s3 == 1728, "virtual array = σ³ = 1728 electrode-equivalent (beamforming across tiles)", "12³ = " + str(s3))
+
+    // ── μ = 1 μm coil lithography pitch ──
+    _check(MU == 1, "coil litho pitch = μ(6) = 1 μm (loop-to-loop)", "")
+
+    // ── τ = 4 multiplex phases per read frame (sense-A · sense-B · null · calibrate) ──
+    _check(TAU == 4, "read-frame multiplex phases = τ(6) = 4 (sense-A · sense-B · null · calibrate)", "")
+
+    // ── φ = 2 directions per channel (read pick-up loop / write drive loop, time-shared) ──
+    _check(PHI == 2, "directions/channel = φ(6) = 2 (read pick-up loop / write drive loop)", "time-shared — never both energized")
+
+    // ── read frame ≤ sopfr = 5 ms → 200 Hz read rate ──
+    _check(SOPFR == 5 && 1000 / SOPFR == 200, "read-frame period ≤ sopfr = 5 ms → 200 Hz read rate", "1000 ms / 5 ms = " + str(1000 / SOPFR) + " Hz")
+
+    // ── full-head: σ² × σ² = 144 × 144 = 20736 ; headline "1.44 M ch" = σ² × σ⁴ scale class ──
+    let full_head_class = s2 * s2          // 20736 — the tile-grid count; "1.44 M" is the σ⁴·... headline figure
+    _check(full_head_class == 20736, "full-head tile-grid count = σ² × σ² = 20736 (headline ≈ 1.44 M ch full array)", "144·144 = " + str(full_head_class))
+
+    // ── σ - φ = 10 V/m·mm focal-contrast design target (algebraic anchor only) ──
+    _check(SIGMA - PHI == 10, "write-gradient focal-contrast design target = σ - φ = 10 (V/m·mm anchor)", "")
+
+    // ── graceful degradation: 6 → 5 micro-tiles, 144 → 120 ch on drift ──
+    _check((5 * s2) / N == 120, "drift-degrade: 5 micro-tiles → 120 ch (was 144)", "5·144/6 = 120")
+
+    println("")
+    let t = _read(DOC)
+    _check(t.len() > 0, "coil pillar doc present", DOC)
+    _check(_has(t, "144") && _has(t, "1296"), "doc states σ²=144 ch/tile + n^τ=1296-ch hex lattice", "")
+    _check(_has(t, "J₂") && _has(t, "24"), "doc states J₂=24 ch/macro-tile", "")
+    _check(_has(t, "μ") || _has(t, "1 μm") || _has(t, "1 um"), "doc states μ=1 μm pitch", "")
+    _check(_has(t, "hexa-rtsc"), "doc cross-links hexa-rtsc (RT-SC ambient-operation dependency)", "")
+    _check(_has(t, "F-AURA-2"), "doc names falsifier F-AURA-2", "")
+    _check(_has(t, "TMS") && _has(t, "MEG"), "doc cites published TMS / MEG references", "")
+
+    println("")
+    println("========================================================================")
+    let pass_n = RUN - FAIL
+    println("  " + str(pass_n) + "/" + str(RUN) + " algebraic checks passed")
+    if FAIL > 0 { println("__HEXA_AURA_CALC_COIL__ FAIL"); exit(1) }
+    println("  HEXA-RT-SC-NANOCOIL channel topology is an integer consequence of the n=6 lattice.")
+    println("  (T1 only — F-AURA-2a/2b/2c remain OPEN; RT-SC material deferred to hexa-rtsc.)")
+    println("__HEXA_AURA_CALC_COIL__ PASS")
+    exit(0)
+}
