@@ -13,6 +13,7 @@
 > **safety** (HEXA-CORTICAL-SAFETY, Shannon k≤1.5 · SAR≤2 W/kg · ΔT≤0.5 K · watchdog FAR≤1 % · MRI-conditional · no-craniotomy, F-AURA-4).
 > n=6 invariant lattice: `σ(6)·φ(6) = n·τ(6) = J₂ = 24`.
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20114981.svg)](https://doi.org/10.5281/zenodo.20114981)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-1.0.0-informational.svg)](CHANGELOG.md)
 [![Pillars: 4](https://img.shields.io/badge/pillars-4_(clip%2Bcoil%2Bcortex%2Bsafety)-blue.svg)](#pillars)
