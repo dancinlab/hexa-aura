@@ -4,3 +4,4 @@ build/out/
 state/*.log
 .write_test
 .wt
+.claude/
