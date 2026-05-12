@@ -70,28 +70,6 @@ Every boundary number is pinned to **n=6** (the third perfect number; `σ(6)=12`
 
 ---
 
-## Pillars
-
-`hexa-aura` is organized as **4 pillars**, each with a spec doc + a falsifier
-(`.roadmap.hexa_aura §B`) + a 3-tier RSC closure ladder (T1 algebraic / T2 closed-form
-numerics / T3 published-reference parity):
-
-| Pillar | Spec | Falsifier | n=6 anchor | RSC scripts |
-|---|---|---|---|---|
-| **clip** | [`clip/doc/mastoid-clip.md`](clip/doc/mastoid-clip.md) | **F-AURA-1** (1a/1b/1c) | φ=2 × σ·n/10 = 3.6 g · τ=4 anchor · sopfr=5 mm bone window · J₂≤24 mm envelope | `calc_clip` · `numerics_clip` · `numerics_clip_parity` |
-| **coil** | [`coil/doc/rt-sc-nanocoil.md`](coil/doc/rt-sc-nanocoil.md) | **F-AURA-2** (2a/2b/2c) | μ=1 μm pitch · σ²=144 ch/tile · J₂=24 ch/macro · n^τ=1296-ch hex · σ³=1728-equiv beamforming · RT-SC ambient | `calc_coil` · `numerics_coil` · `numerics_coil_parity` |
-| **cortex** | [`cortex/doc/cortical-interface.md`](cortex/doc/cortical-interface.md) | **F-AURA-3** (3a/3b/3c/3d) | σ=12 zones (A1/V1~V6/S1/M1/PFC/…) · φ=2 dir · τ=4 modes · sopfr=5 ms · σ·τ=48 K-class px · 18→0 | `calc_cortex` · `numerics_cortex` · `numerics_cortex_parity` |
-| **safety** | [`safety/doc/cortical-safety.md`](safety/doc/cortical-safety.md) | **F-AURA-4** (4a/4b/4c/4d/4e) | Shannon k≤1.5 · SAR≤φ=2 W/kg · ΔT≤φ/τ=0.5 K · watchdog FAR≤μ=1 % · coating φ·σ=24 yr · MRI-conditional · no-craniotomy | `calc_safety` · `numerics_safety` · `numerics_safety_parity` |
-
-```bash
-hexa run cli/hexa-aura.hexa clip      # HEXA-MASTOID-CLIP   (form-factor) spec head
-hexa run cli/hexa-aura.hexa coil      # HEXA-RT-SC-NANOCOIL (transducer)  spec head
-hexa run cli/hexa-aura.hexa cortex    # HEXA-CORTICAL-IF    (cortical I/O) spec head
-hexa run cli/hexa-aura.hexa safety    # HEXA-CORTICAL-SAFETY (caps)        spec head
-```
-
----
-
 ## Atlas
 
 5 background docs (not pillars — the broader n=6 BCI context the substrate sits in):
