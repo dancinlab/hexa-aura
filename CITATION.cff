@@ -2,7 +2,10 @@ cff-version: 1.2.0
 message: "If you use hexa-aura in academic work, please cite as below."
 title: "hexa-aura: HEXA family post-aural BCI chip substrate (측두골 클립; 4 pillars clip/coil/cortex/safety; n=6 invariant lattice σ·φ = n·τ = J₂ = 24)"
 authors:
-  - name: dancinlab contributors
+  - family-names: Park
+    given-names: Min Woo
+    alias: dancinlab
+    email: nerve011235@gmail.com
     affiliation: dancinlab
 license: MIT
 repository-code: "https://github.com/dancinlab/hexa-aura"
