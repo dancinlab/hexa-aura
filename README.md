@@ -197,36 +197,34 @@ Code-layer 3-tier closure (T1 ✓ + T2 ✓ + T3 parity ✓) = 100% for all 4 at 
 
 ---
 
-## Quick start
-
-### Via `hx` (recommended)
+## Install
 
 ```bash
-hx install hexa-aura            # global, pulls latest from registry
-hexa-aura --version             # → 1.0.0
+# 1. Install hexa-lang (ships `hexa` + `hx` package manager)
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/dancinlab/hexa-lang/main/install.sh)"
+
+# 2. Install hexa-aura
+hx install hexa-aura          # global, pulls latest from registry
 ```
 
-### Via git clone (works today)
+## Run
 
 ```bash
-git clone https://github.com/dancinlab/hexa-aura.git ~/.hexa-aura
-export HEXA_AURA_ROOT=~/.hexa-aura
-export PATH="$HEXA_AURA_ROOT/cli:$PATH"
-
-hexa run $HEXA_AURA_ROOT/cli/hexa-aura.hexa status     # 4-pillar + 5-atlas table + caveats
-hexa run $HEXA_AURA_ROOT/cli/hexa-aura.hexa selftest   # 4 pillar + 5 atlas presence + n=6 sanity
-hexa run $HEXA_AURA_ROOT/cli/hexa-aura.hexa verify     # 19 RSC audits
-hexa run $HEXA_AURA_ROOT/cli/hexa-aura.hexa clip       # pillar spec head
-
-# Sibling CLIs (cross-link policy — DO NOT proxy through hexa-aura):
-hexa-rtsc  selftest         # RT-SC ambient SC — the coil pillar depends on this
-hexa-brain pipeline         # working EEG/BMI
-hexa-codex serve            # decoder model serving
-hexa-chip  neuromorphic     # chip-grade neuromorphic silicon
-hexa-grid  v2x              # 5G/6G uplink
+hexa-aura clip            # HEXA-MASTOID-CLIP    — form-factor (3.6 g/side, τ=4 anchor, sopfr=5 mm bone)   [F-AURA-1]
+hexa-aura coil            # HEXA-RT-SC-NANOCOIL  — transducer (μ=1 μm pitch, σ²=144 ch/tile, J₂=24/macro)  [F-AURA-2]
+hexa-aura cortex          # HEXA-CORTICAL-IF     — cortical I/O (σ=12 zones, φ=2 dir, τ=4 modes; 18-to-0)   [F-AURA-3]
+hexa-aura safety          # HEXA-CORTICAL-SAFETY — caps (Shannon k 1.5, SAR 2 W/kg, ΔT 0.5 K, FAR 1 %, MRI-cond) [F-AURA-4]
+hexa-aura neuro           # atlas: neuro
+hexa-aura brain_computer_interface  # atlas: brain-computer-interface
+hexa-aura hexa_neuromorphic         # atlas: hexa-neuromorphic
+hexa-aura l9_field_photon_neuro     # atlas: l9-field-photon-neuro
+hexa-aura neuroscience              # atlas: neuroscience
+hexa-aura status          # 4-pillar + 5-atlas table + verdict + cross-link + caveats
+hexa-aura selftest        # 4 pillar + 5 atlas presence + n=6 lattice sanity
+hexa-aura verify [<sub>]  # RSC surface — sub: all (default) | lattice | cross-doc | clip | coil | cortex | safety | numerics-* | falsifier | lint-numerics | saturation
+hexa-aura version         # print version
+hexa-aura help            # full --help (subcommands + env vars + cross-link)
 ```
-
-No Python deps. No network. Pure-hexa substrate browser + RSC verify surface.
 
 ---
 
