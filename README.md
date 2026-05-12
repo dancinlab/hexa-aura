@@ -200,11 +200,11 @@ Code-layer 3-tier closure (T1 ✓ + T2 ✓ + T3 parity ✓) = 100% for all 4 at 
 ## Install
 
 ```bash
-# 1. Install hexa-lang (ships `hexa` + `hx` package manager)
+# 1. Install hexa-lang (gives you `hexa` + `hx` package manager)
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/dancinlab/hexa-lang/main/install.sh)"
 
 # 2. Install hexa-aura
-hx install hexa-aura          # global, pulls latest from registry
+hx install hexa-aura
 ```
 
 ## Run
