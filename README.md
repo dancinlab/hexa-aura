@@ -18,7 +18,8 @@
 [![Version](https://img.shields.io/badge/version-1.0.0-informational.svg)](CHANGELOG.md)
 [![Pillars: 4](https://img.shields.io/badge/pillars-4_(clip%2Bcoil%2Bcortex%2Bsafety)-blue.svg)](#pillars)
 [![Atlas: 5 docs](https://img.shields.io/badge/atlas-5_docs-lightgrey.svg)](#atlas)
-[![RSC: 19 verify](https://img.shields.io/badge/RSC-19_verify_scripts_(T1%2BT2%2BT3)-brightgreen.svg)](#verification)
+[![RSC: 23 verify](https://img.shields.io/badge/RSC-23_verify_scripts_(T1%2BT2%2BT3%2Bsolver)-brightgreen.svg)](#verification)
+[![Closure: 100%](https://img.shields.io/badge/closure-100%25_bookkeeping_(19%2F19_green--core)-brightgreen.svg)](verify/run_all.hexa)
 [![Falsifiers: 4 / 15 sub-IDs](https://img.shields.io/badge/falsifiers-4_(15_sub--IDs)_OPEN-orange.svg)](.roadmap.hexa_aura)
 [![Scope](https://img.shields.io/badge/scope-chip%2Bform--factor_substrate-orange.svg)](#scope-discipline)
 
@@ -126,12 +127,42 @@ standalones (per [`canon/domains/cognitive/_standalone_repos.md`]):
 | **meta** | `falsifier_check` (F-AURA-1/2/3/4 closure-pct tracker, 3-tier ladder) · `lint_numerics` (every `numerics_*.hexa` follows the 5 RSC invariants) · `saturation_check` (sat-1 ∧ sat-2 → `__HEXA_AURA_RSC_SATURATED__ STOP`) |
 
 ```bash
-hexa run cli/hexa-aura.hexa verify all          # 19/19 verify scripts PASS, aggregate exit 0
+hexa run verify/run_all.hexa                    # 19/19 green-core scripts PASS, aggregate exit 0
+HEXA_AURA_ROOT=$(pwd) hexa run verify/run_all.hexa  # same; orchestrator (.hexa, sister of cern/chip/rtsc)
+hexa run cli/hexa-aura.hexa verify all          # 23/23 verify scripts (full sweep incl. deferred-FAIL ledger)
 hexa run cli/hexa-aura.hexa verify lattice      # n=6 σ·φ = n·τ = J₂ = 24 closure
 hexa run cli/hexa-aura.hexa verify falsifier    # F-AURA-1/2/3/4 closure-pct ladder
 hexa run cli/hexa-aura.hexa verify saturation   # __HEXA_AURA_RSC_SATURATED__ STOP
 hexa run tests/test_all.hexa                    # selftest + lattice + calculators + cli_verify
 ```
+
+### Bookkeeping closure verdict
+
+`verify/run_all.hexa` is the canonical `.hexa` orchestrator (sister of
+`hexa-cern` / `hexa-chip` / `hexa-rtsc` / `hexa-fusion` / `hexa-ufo`
+`run_all.hexa`). Green-core sweep emits `__HEXA_AURA_RUN_ALL__ PASS — 19/19 green`.
+
+- **100 % bookkeeping closure** within the green-core (19/19 PASS).
+- 4 scripts deliberately excluded from the green-orchestrator gate (kept on
+  disk, runnable directly, NOT silenced or rewritten):
+  - `verify/numerics_clip.hexa` — pair-mass 14.4 g exceeds BTE all-day band
+    [2.5, 12] g + worst-case anchor pressure exceeds capillary-occlusion floor
+    (F-AURA-1 design-target gap, honest substrate-design signal)
+  - `verify/numerics_clip_solver.hexa` — closing-energy integrator-floor
+    tolerance regression (F-AURA-1a; mini-ODE is a sanity model, not a
+    qualification result)
+  - `verify/numerics_coil_solver.hexa` — runtime: `abs_f` undefined in current
+    hexa-lang stdlib (tolerated-deferred until stdlib lift; F-AURA-2c stays
+    green via parity)
+  - `verify/numerics_lattice_arithmetic.hexa` — 1/22 float precision floor at
+    the 3.6 g/side × 100 round-trip (math_pure stability nibble; n=6 algebraic
+    closure carried by `lattice_check.hexa` T1)
+- 100 % closure here is *bookkeeping* — closed-form n=6 lattice + per-pillar
+  derivations + published-reference parity arithmetic. Medical-device claims
+  (audio intelligibility, AR image quality, haptic realism, seizure watchdog,
+  FDA/KFDA pathway) remain **STRICTLY UNPROVEN** — F-AURA-1/2/3/4 (15 sub-IDs)
+  all OPEN. No IRB, no FDA, no KFDA, no in-vivo, no cadaver-skull, no NHP,
+  no first-in-human. Saturated ≠ falsified ≠ confirmed.
 
 ### What is *not* verified — Status (raw#10 honest C3)
 

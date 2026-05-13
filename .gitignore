@@ -2,6 +2,10 @@
 build/out/
 *.pdf
 state/*.log
+state/*.jsonl
+state/runs/
+state/cache/
+state/markers/
 .write_test
 .wt
 .claude/
