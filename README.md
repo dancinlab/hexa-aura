@@ -1,39 +1,34 @@
-# ✨ hexa-aura — n=6 post-aural BCI chip substrate (측두골 클립)
+<p align="center">
+  <img src="docs/logo.svg" width="140" alt="hexa-aura">
+</p>
 
-> **귀뒤 측두골(temporal bone) 유양돌기(mastoid) 클립 한 쌍이 스마트폰 + 18개
-> 웨어러블을 0개로 수렴한다.** 양쪽 φ=2개, 각 σ·n/10 = **3.6 g** (쌍 7.2 g,
-> AirPods-Pro 5.4 g 급). RT-SC 나노코일이 σ²=**144 채널/타일**로 청각(A1) ·
-> 시각(V1~V6) · 체성감각(S1) · 운동(M1) 피질을 직접 read/write —
-> AirPods · Vision Pro · Apple Watch · 외골격 · 의수 · e-skin · 후각·미각·수면·감정
-> 트래커 …  **18개 웨어러블이 한 쌍의 보이지 않는 클립으로**.
->
-> 4 pillars (n=6 substrate): **clip** (HEXA-MASTOID-CLIP, F-AURA-1) ·
-> **coil** (HEXA-RT-SC-NANOCOIL, σ²=144 ch/tile · J₂=24 ch/macro · n^τ=6⁴=1296-ch hex, F-AURA-2) ·
-> **cortex** (HEXA-CORTICAL-IF, σ=12 zones · φ=2 dir · τ=4 modes · 18→0, F-AURA-3) ·
-> **safety** (HEXA-CORTICAL-SAFETY, Shannon k≤1.5 · SAR≤2 W/kg · ΔT≤0.5 K · watchdog FAR≤1 % · MRI-conditional · no-craniotomy, F-AURA-4).
-> n=6 invariant lattice: `σ(6)·φ(6) = n·τ(6) = J₂ = 24`.
+<h1 align="center">✨ hexa-aura</h1>
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20114981.svg)](https://doi.org/10.5281/zenodo.20114981)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.0.0-informational.svg)](CHANGELOG.md)
-[![Pillars: 4](https://img.shields.io/badge/pillars-4_(clip%2Bcoil%2Bcortex%2Bsafety)-blue.svg)](#pillars)
-[![Atlas: 5 docs](https://img.shields.io/badge/atlas-5_docs-lightgrey.svg)](#atlas)
-[![RSC: 23 verify](https://img.shields.io/badge/RSC-23_verify_scripts_(T1%2BT2%2BT3%2Bsolver)-brightgreen.svg)](#verification)
-[![Closure: 100%](https://img.shields.io/badge/closure-100%25_bookkeeping_(19%2F19_green--core)-brightgreen.svg)](verify/run_all.hexa)
-[![Falsifiers: 4 / 15 sub-IDs](https://img.shields.io/badge/falsifiers-4_(15_sub--IDs)_OPEN-orange.svg)](.roadmap.hexa_aura)
-[![Scope](https://img.shields.io/badge/scope-chip%2Bform--factor_substrate-orange.svg)](#scope-discipline)
+<p align="center"><strong>HEXA-Aura Family</strong> — post-aural BCI chip substrate · mastoid clip · RT-SC nano-coil · cortical I/O · n=6 lattice</p>
 
-> **Provenance**: 5-doc atlas bundled from `canon/domains/{life,cognitive,compute}/` at SHA
-> `5458b7d1` (2026-05-10) — 2 of 5 (`neuro`, `brain-computer-interface`) intentionally
-> extracted from historical SHAs `579ab196` / `ab155706` for richer Korean content
-> (see [`TODO.md`](TODO.md) §1). 4 pillar specs + RSC verify surface authored in-tree
-> 2026-05-10 (v1.0.0). RSC pattern: [`~/core/bedrock/docs/runnable_surface_recipe.md`].
-> Sister of `dancinlab/hexa-cern` (the canonical RSC worked example), `dancinlab/hexa-ufo`,
-> `dancinlab/hexa-rtsc`, `dancinlab/hexa-bio`, `dancinlab/hexa-chip`.
+<p align="center">
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-blue"></a>
+  <a href="https://doi.org/10.5281/zenodo.20114981"><img alt="DOI" src="https://zenodo.org/badge/DOI/10.5281/zenodo.20114981.svg"></a>
+  <img alt="Spec" src="https://img.shields.io/badge/spec-v1.0.0-success">
+  <img alt="Pillars" src="https://img.shields.io/badge/pillars-4-informational">
+  <img alt="Verify" src="https://img.shields.io/badge/verify-19%2F19_green--core-informational">
+  <img alt="Closure" src="https://img.shields.io/badge/closure-100%25-informational">
+  <img alt="Falsifiers" src="https://img.shields.io/badge/falsifiers-4_(15_sub--IDs)_OPEN-orange">
+  <img alt="Sibling" src="https://img.shields.io/badge/sibling-hexa--cern%20·%20hexa--rtsc%20·%20hexa--bio%20·%20hexa--chip-blueviolet">
+</p>
+
+<p align="center">mastoid · BTE · RT-SC · cortical · 18→0 · σ·φ=24 · J₂=24 · post-aural · BCI · MIT</p>
 
 ---
 
+`hexa-aura` is the post-aural BCI **CHIP + FORM-FACTOR SUBSTRATE** of the HEXA family — a behind-the-ear (BTE) clip pair anchored on the mastoid process that interfaces the temporal-bone-adjacent cortices via room-temperature-superconducting nano-coils. The substrate ships 4 pillars (clip · coil · cortex · safety), a 5-doc atlas, and a 19-script RSC verify surface; F-AURA-1 / F-AURA-2 / F-AURA-3 / F-AURA-4 (15 sub-IDs) are all OPEN at v1.0.0.
+
+> [!NOTE]
+> Member of the HEXA family (parent: `dancinlab/echoes`). Sister of [`hexa-cern`](https://github.com/dancinlab/hexa-cern) (the canonical RSC worked example), [`hexa-ufo`](https://github.com/dancinlab/hexa-ufo), [`hexa-rtsc`](https://github.com/dancinlab/hexa-rtsc) (the RT-SC dependency — if it falls, **F-AURA-2 is DEMOTED**), [`hexa-bio`](https://github.com/dancinlab/hexa-bio), [`hexa-chip`](https://github.com/dancinlab/hexa-chip). All share the n=6 invariant lattice (`σ·φ = n·τ = J₂ = 24`) and the RSC verify pattern.
+
 ## Why
+
+**귀뒤 측두골(temporal bone) 유양돌기(mastoid) 클립 한 쌍이 스마트폰 + 18개 웨어러블을 0개로 수렴한다.** 양쪽 φ=2개, 각 σ·n/10 = **3.6 g** (쌍 7.2 g, AirPods-Pro 5.4 g 급). RT-SC 나노코일이 σ²=**144 채널/타일**로 청각(A1) · 시각(V1~V6) · 체성감각(S1) · 운동(M1) 피질을 직접 read/write — AirPods · Vision Pro · Apple Watch · 외골격 · 의수 · e-skin · 후각·미각·수면·감정 트래커 …  **18개 웨어러블이 한 쌍의 보이지 않는 클립으로**.
 
 The icon of "future wearable" is a *stack*: AR glasses + earbuds + smartwatch + ring +
 sleep tracker, and — for the assistive population — exoskeleton, myoelectric prosthetic,
@@ -51,6 +46,14 @@ to charge twice.
 *which* cortical zones it touches, and *what safety caps* it lives under. The cognitive ML
 (intent→text, percept→injection patterns) and the sensory/cognitive *application* verbs
 live in sibling standalones — see [Scope discipline](#scope-discipline).
+
+4 pillars (n=6 substrate): **clip** (HEXA-MASTOID-CLIP, F-AURA-1) ·
+**coil** (HEXA-RT-SC-NANOCOIL, σ²=144 ch/tile · J₂=24 ch/macro · n^τ=6⁴=1296-ch hex, F-AURA-2) ·
+**cortex** (HEXA-CORTICAL-IF, σ=12 zones · φ=2 dir · τ=4 modes · 18→0, F-AURA-3) ·
+**safety** (HEXA-CORTICAL-SAFETY, Shannon k≤1.5 · SAR≤2 W/kg · ΔT≤0.5 K · watchdog FAR≤1 % · MRI-conditional · no-craniotomy, F-AURA-4).
+n=6 invariant lattice: `σ(6)·φ(6) = n·τ(6) = J₂ = 24`.
+
+## Lattice projection
 
 Every boundary number is pinned to **n=6** (the third perfect number; `σ(6)=12`, `τ(6)=4`,
 `φ(6)=2`, `sopfr(6)=5`, `μ(6)=1`, `J₂=24`):
@@ -113,6 +116,25 @@ standalones (per [`canon/domains/cognitive/_standalone_repos.md`]):
 
 ---
 
+## Status
+
+**v1.0.0 RELEASED** (2026-05-10) — `verdict = SPEC_FIRST_RSC`.
+
+- **4 pillars** authored in-tree: clip · coil · cortex · safety (per-pillar docs under `clip/doc/` · `coil/doc/` · `cortex/doc/` · `safety/doc/`).
+- **5-doc atlas** under `docs/` (neuro · brain-computer-interface · hexa-neuromorphic · l9-field-photon-neuro · neuroscience); 2 KR docs extracted from richer historical SHAs.
+- **19 green-core RSC verify scripts** PASS (`verify/run_all.hexa` → `__HEXA_AURA_RUN_ALL__ PASS — 19/19 green`). 4 scripts deferred (deliberately excluded from the green-orchestrator gate, kept on disk and runnable).
+- **F-AURA-1 / F-AURA-2 / F-AURA-3 / F-AURA-4** (15 sub-IDs) — all OPEN. Monotone: `OPEN → CONFIRMED` or `OPEN → DEMOTED`. No silent retract. No IRB / FDA / KFDA / in-vivo / cadaver / NHP / first-in-human results.
+- CLI dispatch (4 pillar verbs + 5 atlas verbs + status + selftest + verify [<sub>]) + 5 tests + build PDF pipeline + methodology document.
+
+> [!IMPORTANT]
+> `__HEXA_AURA_RSC_SATURATED__ STOP` + 100% bookkeeping closure ≠ apparatus working. Medical-device claims (audio intelligibility, AR image quality, haptic realism, seizure watchdog, FDA/KFDA pathway) remain **STRICTLY UNPROVEN**. The 4 falsifiers stay OPEN until Stage-1+ bench / in-vivo evidence lands.
+
+> **Provenance**: 5-doc atlas bundled from `canon/domains/{life,cognitive,compute}/` at SHA
+> `5458b7d1` (2026-05-10) — 2 of 5 (`neuro`, `brain-computer-interface`) intentionally
+> extracted from historical SHAs `579ab196` / `ab155706` for richer Korean content
+> (see [`TODO.md`](TODO.md) §1). 4 pillar specs + RSC verify surface authored in-tree
+> 2026-05-10 (v1.0.0). RSC pattern: [`~/core/bedrock/docs/runnable_surface_recipe.md`].
+
 ## Verification
 
 `hexa-aura` ships a full **RSC (Runnable Surface Construction) verify surface** —
@@ -164,7 +186,6 @@ hexa run tests/test_all.hexa                    # selftest + lattice + calculato
   all OPEN. No IRB, no FDA, no KFDA, no in-vivo, no cadaver-skull, no NHP,
   no first-in-human. Saturated ≠ falsified ≠ confirmed.
 
-### What is *not* verified — Status (raw#10 honest C3)
 
 > `hexa-aura` v1.0.0 is a **4-pillar BCI-substrate design spec** + a 5-doc atlas + an RSC
 > verify surface. **`verify/*` sentinel PASS** validates: (a) the n=6 lattice arithmetic
@@ -237,7 +258,7 @@ hexa-aura help            # full --help (subcommands + env vars + cross-link)
 
 ---
 
-## Architecture
+## Repo layout
 
 ```
 hexa-aura/
