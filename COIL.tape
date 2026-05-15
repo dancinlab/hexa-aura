@@ -1,0 +1,100 @@
+#!/usr/bin/env tape
+# ══════════════════════════════════════════════════════════════════════
+# .tape v1.2 — grammar primer (cold-read by any LLM / agent / human)
+# ══════════════════════════════════════════════════════════════════════
+# Form: each entry is `@<type> <id> := "<subject>" :: <kind> [<grades>]`
+#       optionally followed by body lines (2-space indent) — key=value,
+#       edges (<- -> => …), or quoted prose.
+#
+# ENTRY TYPES (17):
+#   Runtime (10): @S session  @U user  @A assistant  @T tool-call  @R result
+#                 @H hook  @D decision  @K cost  @P provider  @? anomaly
+#   Foundation:   @I identity-claim
+#   Declarative:  @X external-citation  @F forbidden-pattern  @N note
+#                 @C config  @L layout  @V spec-version
+#
+# EDGES (12, on body lines, 2-space indent):
+#   Causal:     <- caused-by   -> triggers   == continues
+#               ~> supersedes  !! aborts     |> verified-by
+#   Effect:     => produces (followed by quoted natural-language)
+#   Structural: <: specializes  :> generalizes  ?> soft-depends
+#               !> conflicts-with  @> projects-to (e.g. @> AGENTS.md)
+#
+# GRADE TAGS (in [...] on entry header):
+#   Delivery:   ok · err · denied · cancelled · partial · superseded
+#   Governance: required · recommended · optional · draft · active · deprecated
+#   Scoped:     allow:<x> · deny:<x>
+#   Time/index: T<n> (turn)  N<n> (wall-sec)  d=<YYYY-MM-DD>
+#
+# PAYLOAD SYNTAX (body lines):
+#   key = "value"           single-line string
+#   key = [a, b, c]         array literal
+#   key <<~EOF              heredoc (multi-line; ends with EOF on own line)
+#     multi-line text
+#   EOF
+#   "see [@x1] §3"          inline citation by entry id
+#   `cmd or path`           backtick code-span (inline only)
+#
+# Full spec: ~/core/tape/spec/tape.md (or github.com/dancinlab/tape)
+# ══════════════════════════════════════════════════════════════════════
+
+
+# ══════════════════════════════════════════════════════════════
+# COIL.tape — architecture-current (editable per v1.2)
+# Event history → COIL.log.tape sibling
+# ══════════════════════════════════════════════════════════════
+
+@V := "tape" :: spec [active]
+  version = "1.2"
+
+@I id001 := "coil" :: identity-claim [d=2026-05-15 active]
+  kind = "HEXA-Aura family · pillar 2/4 · RT-SC nano-coil transducer"
+  brief = "planar RT-SC nano-coil tile · μ=1 μm pitch · σ²=144 ch/tile · J₂=24 ch/macro · n^τ=6⁴=1296-ch hex lattice · σ³=1728 virtual"
+  parent = "dancinlab/hexa-aura"
+  pillar_name = "HEXA-RT-SC-NANOCOIL"
+  falsifier = "F-AURA-2"
+  spec = "coil/doc/rt-sc-nanocoil.md"
+  crosslink = "hexa-rtsc (critical — if hexa-rtsc falsified → F-AURA-2 DEMOTED)"
+  sibling-log = "COIL.log.tape"
+
+@L l1 := "coil-pillar-layout" :: structure [active]
+  spec -> "coil/doc/rt-sc-nanocoil.md (§0 lattice + §1 WHY + §2 COMPARE + §3 REQUIRES + §4 STRUCT + §5 FLOW + §6 VERIFY + §7 EVOLVE + §8 scope)"
+  t1_calc -> "verify/calc_coil.hexa"
+  t2_numerics -> "verify/numerics_coil.hexa"
+  t2_solver -> "verify/numerics_coil_solver.hexa (RL ODE L·dI/dt = V − R·I, persistent-current limit)"
+  t3_parity -> "verify/numerics_coil_parity.hexa (Neuralink-N1 1024 · Utah 96 · Stentrode 16 · SQUID-MEG · OPM-MEG · TMS figure-8)"
+  cli -> "cli/hexa-aura.hexa coil"
+
+@D d_pitch := "mu-1um-litho-pitch" :: coil [required active]
+  rule = "μ(6) = 1 → 1 μm nano-coil lithography pitch (loop-to-loop)"
+  why = "focal write requires μm-scale gradient sources; μ=1 anchors the litho process node"
+  authority = "coil/doc/rt-sc-nanocoil.md §0"
+
+@D d_channels := "sigma-sq-144-ch-per-tile" :: coil [required active]
+  rule = "σ² = 144 bidirectional channels / tile (12×12 micro-grid); J₂ = 24 ch / macro-tile; n^τ = 1296-ch hex"
+  why = "Neuralink-N1 1024-ch parity·+ without craniotomy"
+  authority = "coil/doc/rt-sc-nanocoil.md §0"
+
+@D d_directions := "phi-2-read-write" :: coil [required active]
+  rule = "φ=2 directions per channel — pick-up loop (read, MEG-class fT) + drive loop (write, TMS-class focal E-field); time-shared τ=4 phases"
+  authority = ".roadmap.hexa_aura §A.1"
+
+@F f_aura_2a := "rtsc-tile-focal-gradient" :: falsifier [active]
+  status = "OPEN"
+  claim = "μ=1 μm pitch RT-SC tile cannot reach ∂B/∂x focal gradient TMS-class cortical write needs"
+  closure = "T1 ✓ + T2 ✓ + T3 ✓ = 100% code-layer"
+
+@F f_aura_2b := "tile-read-snr-vs-opm" :: falsifier [active]
+  status = "OPEN"
+  claim = "σ²=144 ch/tile read SNR is below OPM-MEG (≈15 fT/√Hz) noise floor through 5 mm bone"
+
+@F f_aura_2c := "coil-power-thermal-budget" :: falsifier [active]
+  status = "OPEN"
+  claim = "coil switching power dissipates > 3.6 g clip thermal budget allows (ΔT > 0.5 K at scalp)"
+
+@X x_roadmap := ".roadmap.hexa_aura §B.2" :: roadmap [active]
+  scope = "F-AURA-2 sub-ID detail table"
+
+@X x_hexa_rtsc := "hexa-rtsc" :: sibling-repo [active]
+  url = "https://github.com/dancinlab/hexa-rtsc"
+  scope = "RT-SC material substrate — F-AURA-2 critical external dependency"

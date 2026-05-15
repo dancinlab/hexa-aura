@@ -1,0 +1,109 @@
+#!/usr/bin/env tape
+# ══════════════════════════════════════════════════════════════════════
+# .tape v1.2 — grammar primer (cold-read by any LLM / agent / human)
+# ══════════════════════════════════════════════════════════════════════
+# Form: each entry is `@<type> <id> := "<subject>" :: <kind> [<grades>]`
+#       optionally followed by body lines (2-space indent) — key=value,
+#       edges (<- -> => …), or quoted prose.
+#
+# ENTRY TYPES (17):
+#   Runtime (10): @S session  @U user  @A assistant  @T tool-call  @R result
+#                 @H hook  @D decision  @K cost  @P provider  @? anomaly
+#   Foundation:   @I identity-claim
+#   Declarative:  @X external-citation  @F forbidden-pattern  @N note
+#                 @C config  @L layout  @V spec-version
+#
+# EDGES (12, on body lines, 2-space indent):
+#   Causal:     <- caused-by   -> triggers   == continues
+#               ~> supersedes  !! aborts     |> verified-by
+#   Effect:     => produces (followed by quoted natural-language)
+#   Structural: <: specializes  :> generalizes  ?> soft-depends
+#               !> conflicts-with  @> projects-to (e.g. @> AGENTS.md)
+#
+# GRADE TAGS (in [...] on entry header):
+#   Delivery:   ok · err · denied · cancelled · partial · superseded
+#   Governance: required · recommended · optional · draft · active · deprecated
+#   Scoped:     allow:<x> · deny:<x>
+#   Time/index: T<n> (turn)  N<n> (wall-sec)  d=<YYYY-MM-DD>
+#
+# PAYLOAD SYNTAX (body lines):
+#   key = "value"           single-line string
+#   key = [a, b, c]         array literal
+#   key <<~EOF              heredoc (multi-line; ends with EOF on own line)
+#     multi-line text
+#   EOF
+#   "see [@x1] §3"          inline citation by entry id
+#   `cmd or path`           backtick code-span (inline only)
+#
+# Full spec: ~/core/tape/spec/tape.md (or github.com/dancinlab/tape)
+# ══════════════════════════════════════════════════════════════════════
+
+
+# ══════════════════════════════════════════════════════════════
+# SAFETY.tape — architecture-current (editable per v1.2)
+# Event history → SAFETY.log.tape sibling
+# ══════════════════════════════════════════════════════════════
+
+@V := "tape" :: spec [active]
+  version = "1.2"
+
+@I id001 := "safety" :: identity-claim [d=2026-05-15 active]
+  kind = "HEXA-Aura family · pillar 4/4 · current-density / SAR / heating / seizure / no-craniotomy cap"
+  brief = "Shannon k≤1.5 · SAR≤φ=2 W/kg · ΔT≤φ/τ=0.5 K · watchdog FAR≤μ=1% · coating φ·σ=24 yr · MRI-conditional · external-only μ=1 mm clearance"
+  parent = "dancinlab/hexa-aura"
+  pillar_name = "HEXA-CORTICAL-SAFETY"
+  falsifier = "F-AURA-4"
+  spec = "safety/doc/cortical-safety.md"
+  sibling-log = "SAFETY.log.tape"
+
+@L l1 := "safety-pillar-layout" :: structure [active]
+  spec -> "safety/doc/cortical-safety.md (§0 lattice + §1 WHY + §2 COMPARE + §3 REQUIRES + §4 STRUCT + §5 FLOW + §6 VERIFY + §7 EVOLVE + §8 scope)"
+  t1_calc -> "verify/calc_safety.hexa"
+  t2_numerics -> "verify/numerics_safety.hexa"
+  t2_solver -> "verify/numerics_safety_solver.hexa (Pennes bioheat ρc·dT/dt = q_gen − w_b·ρ_b·c_b·(T − T_a))"
+  t3_parity -> "verify/numerics_safety_parity.hexa (ICNIRP-2020 · IEEE-C95.1-2019 · Shannon-1992 · McCreery · CEM43 · Rossi-2009 · ASTM-F2503 · IEC-60601)"
+  cli -> "cli/hexa-aura.hexa safety"
+
+@D d_shannon := "shannon-k-le-1.5" :: safety [required active]
+  rule = "induced charge density factor k ≤ sopfr/τ = 5/4 = 1.25 → rounded design target ≤ 1.5 (Shannon 1992 damage line at k ≈ 1.85)"
+  authority = "Shannon 1992 + McCreery; safety/doc/cortical-safety.md §0"
+
+@D d_sar := "sar-2w-per-kg-local" :: safety [required active]
+  rule = "local 10 g-avg SAR ≤ φ(6) = 2 W/kg (ICNIRP-2020 / IEEE-C95.1-2019 head/trunk local limit)"
+  authority = "ICNIRP-2020 + IEEE-C95.1-2019"
+
+@D d_heating := "delta-t-0.5k" :: safety [required active]
+  rule = "steady-state tissue heating ΔT ≤ φ/τ = 0.5 K at scalp/cortex (CEM43 thermal-dose conservative)"
+  authority = "CEM43 + Pennes bioheat"
+
+@D d_watchdog := "watchdog-far-1pct" :: safety [required active]
+  rule = "EEG-watchdog seizure-detection false-alarm rate ≤ μ(6) = 1% at clinical sensitivity; τ=4 watchdog tiers; λ=2 redundant lanes"
+  authority = ".roadmap.hexa_aura §A.1 + §B.4"
+
+@D d_external := "no-craniotomy-external-only" :: safety [required active]
+  rule = "external-only μ=1 mm minimum skin clearance · zero implanted material · MRI-conditional (IEC 60601-1 / ASTM F2503)"
+  authority = "safety/doc/cortical-safety.md §0"
+
+@F f_aura_4a := "shannon-k-exceed" :: falsifier [active]
+  status = "OPEN"
+  claim = "continuous-wear induced charge density exceeds Shannon k≤1.5 (and k≤1.85) cortical damage limit"
+  closure = "T1 ✓ + T2 ✓ + T3 ✓ = 100% code-layer"
+
+@F f_aura_4b := "sar-exceed-icnirp" :: falsifier [active]
+  status = "OPEN"
+  claim = "local 10 g-avg SAR exceeds ICNIRP-2020 / IEEE-C95.1-2019 2 W/kg at F-AURA-2 write field strengths"
+
+@F f_aura_4c := "heating-exceed-0.5k" :: falsifier [active]
+  status = "OPEN"
+  claim = "scalp/cortex steady-state heating exceeds ΔT ≤ 0.5 K (CEM43 thermal-dose) limit"
+
+@F f_aura_4d := "watchdog-roc-insufficient" :: falsifier [active]
+  status = "OPEN"
+  claim = "EEG-watchdog seizure-detection ROC cannot reach the μ=1 → 1% false-alarm floor at clinical sensitivity"
+
+@F f_aura_4e := "mri-conditional-fail" :: falsifier [active]
+  status = "OPEN"
+  claim = "device is not MRI-conditional (RF heating / displacement-force / image-artifact fails IEC 60601 / ASTM F2503)"
+
+@X x_roadmap := ".roadmap.hexa_aura §B.4" :: roadmap [active]
+  scope = "F-AURA-4 sub-ID detail table"
