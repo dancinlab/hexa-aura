@@ -6,7 +6,6 @@
 // @allow-silent-exit-file
 // @no-lock-needed
 //
-// Mirrors hexa-cern/hexa-ufo install.hexa. raw#9 hexa-only, raw#10 honest C3.
 // Runs the CLI selftest (4 pillar + 5 atlas presence + n=6 lattice sanity) —
 // warn-only, not a blocker.
 // ──────────────────────────────────────────────────────────────────────────

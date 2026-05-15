@@ -55,7 +55,6 @@
 // Run:
 //     hexa run verify/run_all.hexa     # exit 0 = all 19 subscripts PASS
 //
-// HONESTY (closure-honesty-contract per .own own 2 / raw#10 C3):
 //
 //   PASS here means RC=0 from each of the 19 green-core subscripts —
 //   bookkeeping closure of the verified-internally-stable core, NOT
@@ -71,7 +70,6 @@
 //   OPM-MEG, SQUID-MEG, BrainGate, ICNIRP-2020, IEEE-C95.1-2019,
 //   Shannon-1992, McCreery, Rossi-2009, ASTM-F2503, IEC-60601).
 //
-//   Per raw#10 C3: Cochlear / Medtronic / Neuralink / Argus / Boston-Sci
 //   external medical-device invariants are pinned to *their* vendor
 //   numbers — we do NOT impose n=6 lattice fit on external clinical
 //   data. The n=6 derivations sit on hexa-aura's *own* design targets

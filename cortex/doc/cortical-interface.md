@@ -236,7 +236,6 @@ demonstrated cortical interfaces:
 the J₂=24 / 1296 / 48 K tokens, and the cross-links (hexa-brain / hexa-mind /
 hexa-senses) match `.roadmap.hexa_aura` and the other pillars.
 
-**Not verified** (raw#10 C3): a new non-invasive cortical recording or
 stimulation experiment; *perceived* audio intelligibility / AR image quality /
 touch realism; the decode ML models (→ `hexa-mind`); any clinical outcome.
 Those are §A.6 Stage-1+ and the sibling repos.
@@ -260,7 +259,6 @@ Those are §A.6 Stage-1+ and the sibling repos.
 
 ---
 
-## §8 Honest scope (raw#10 C3)
 
 `HEXA-CORTICAL-IF` is a **cortical-I/O substrate spec**: which σ=12 zones the
 coil targets, in which φ=2 directions, on which τ=4 cycle, at which sopfr=5 ms

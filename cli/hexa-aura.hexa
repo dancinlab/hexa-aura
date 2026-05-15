@@ -34,12 +34,10 @@
 //   neuromorphic silicon (chip-grade)             → hexa-chip CLI
 //   5G/6G uplink for cloud sync                   → hexa-grid CLI
 //
-// Honest C3 (raw#10): verify/* sentinel PASS = n=6 lattice + token consistency
 // + published-ref parity arithmetic. NOT in-vivo validation, NOT regulatory
 // clearance. F-AURA-1/2/3/4 all OPEN. See .roadmap.hexa_aura §B.
 //
 // Root resolution: $HEXA_AURA_ROOT env, else inferred from $0.
-// raw#9 hexa-only, raw#15 read-only.
 // ──────────────────────────────────────────────────────────────────────────
 
 let VERSION = "1.0.0"
@@ -111,11 +109,9 @@ fn _hexa_bin() -> str {
     return HOME + "/.hx/bin/hexa"  // @allow-devpath
 }
 
-// ─── caveats (raw#10 C3) ───
 
 fn _print_caveats() {
     println("")
-    println("--- caveats (raw#10 honest C3) ---")
     println("  1. v1.0.0 = 4-pillar BCI substrate spec (clip + coil + cortex + safety) + 5-doc atlas")
     println("     + RSC verify surface. verify/* PASS = n=6 lattice + token consistency + published-ref")
     println("     parity ARITHMETIC — NOT in-vivo validation, NOT regulatory clearance.")

@@ -63,7 +63,6 @@ plan into the 4 pillars:
 
 ---
 
-## §4 Cross-link policy (raw#10)  — DO NOT re-implement; call sibling CLI / repo directly
 
 | concern | sibling |
 | --- | --- |

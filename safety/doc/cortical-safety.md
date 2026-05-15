@@ -220,7 +220,6 @@ the **published, citable** limits:
 / no-craniotomy tokens here match the *caps* referenced by pillars 2 and 3 and by
 `.roadmap.hexa_aura §B.4`.
 
-**Not verified** (raw#10 C3): a built device measured against any standard; FEM
 of the induced-current distribution; the watchdog's actual ROC on real EEG;
 biocompatibility assays; MRI bench tests; **any regulatory clearance** (FDA /
 KFDA — that is §A.6 step 5, years out, and is *not* a verify/* target). The
@@ -245,7 +244,6 @@ code-layer makes, and it is far from "this device is safe to wear".
 
 ---
 
-## §8 Honest scope (raw#10 C3)
 
 `HEXA-CORTICAL-SAFETY` is a **safety-envelope design spec**: the caps (charge
 density k ≤ 1.5, SAR ≤ 2 W/kg, ΔT ≤ 0.5 K, watchdog FAR ≤ 1 %, 24-year coating,

@@ -34,7 +34,6 @@ published-reference parity).
 
 Plus `tests/test_all.hexa` rolls up `test_selftest` + `test_lattice` + `test_calculators` + `test_cli_verify`.
 
-## What this release is *not* (raw#10 honest C3)
 
 `verify/*` sentinel PASS validates **arithmetic and token consistency**, not hardware. It does **not** demonstrate:
 

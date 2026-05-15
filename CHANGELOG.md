@@ -42,7 +42,6 @@ health-check only (recipe §9.1) — no forced chunks.
 - `tests/test_calculators.hexa`: `CASES` → 23 cases.
 - `verify/saturation_check.hexa`: `REQUIRED` → 22 scripts (recipe §1 inventory now includes the per-pillar solvers).
 
-### Honest C3 (raw#10)
 - 0 `.py` added. The solver scripts are closed-form internal consistency (deterministic
   mini-ODE integrators) — NOT physical experiments. The cortex LIF stub's firing rate is
   super-physiological (artifact of a simple LIF + strong drive); the check only requires the
@@ -115,7 +114,6 @@ dispatcher, a 5-test suite, a PDF build pipeline, and a numerics-methodology rea
 - `README.md` rewritten: 4-pillar table, atlas table, scope-discipline matrix, RSC verify-surface table, falsifier preregister, honest-C3 status section, architecture tree, cadence.
 - `TODO.md` §3 (the v1.0.0 author plan) marked done; new §6 added for v1.1.0+ cross-verify and §A.6 hardware path.
 
-### Honest C3 (raw#10)
 - 0 `.py` added — all new runnable code is `.hexa`.
 - `verify/*` sentinel PASS = n=6 lattice + token consistency + published-reference parity *arithmetic* — NOT in-vivo validation, NOT a built device, NOT regulatory clearance.
 - F-AURA-1 / F-AURA-2 / F-AURA-3 / F-AURA-4 (15 sub-IDs) — **all OPEN**. Code-layer 3-tier closure 100%; T4 (Stage-1+ in-vivo / regulatory) = `.roadmap.hexa_aura §A.6`, out of RSC scope, all steps unstarted.

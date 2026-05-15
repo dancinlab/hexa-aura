@@ -96,7 +96,6 @@ soft-guarded with `\IfFileExists{}` for `fontspec` / `xeCJK` (the Korean labels 
 / `titlesec` / `xcolor`, so a host without the optional packages still produces a clean
 ASCII-fallback PDF. This is OPTIONAL — `hexa-aura` ships zero hard build deps.
 
-## §8 — honest C3 (raw#10) — the one paragraph to keep
 
 `hexa-aura` v1.0.0 is a **4-pillar post-aural-BCI chip + form-factor substrate design spec**
 + a 5-doc atlas + a 19-script RSC verify surface. It is *not* a device, *not* in trials,

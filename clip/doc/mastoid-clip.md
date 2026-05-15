@@ -227,7 +227,6 @@ that fits is demonstrated — `numerics_clip.hexa` checks the budget *arithmetic
 sopfr=5 mm / J₂≤24 mm tokens here agree with the same tokens in `coil` (which
 must *fit* in the budget) and `safety` (which owns the pressure/heat limits).
 
-**Not verified** (raw#10 C3): a fabricated 3.6 g clip; in-ear-canal acoustics
 of the bone-conduction channel; long-term skin tolerance; FCC/CE radio
 certification. Those are §A.6 Stage-1+.
 
@@ -249,7 +248,6 @@ certification. Those are §A.6 Stage-1+.
 
 ---
 
-## §8 Honest scope (raw#10 C3)
 
 `HEXA-MASTOID-CLIP` is a **form-factor design spec**. It defines *where* the
 post-aural BCI lives, *how heavy* it is, *how it stays on*, and *how it stays

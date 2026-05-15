@@ -885,7 +885,6 @@ This section covers risks for the domain. Initial scaffold content — expand wi
 - **Tier**: 1 (synthesis-immediate; real-Akida benchmark needed for alien promotion).
 
 #### TP-AKIDA-4: DSE 2400 → Pareto-K (data-driven) over Akida catalog
-- **Hypothesis**: Akida-relevant 5-axis DSE — (substrate × NPU-arch × on-chip-mem × bus × scheduler) — sized natural-cardinality per axis (no truncate-to-6 / pad-to-6 per own#32) yields a Pareto front of size ≈ J₂ = 24, top-K (data-driven; K ≤ J₂) = §4 #4.5 mapping.
 - **closure_grade**: 10 (EXACT — sizes are direct n=6 primitives; reuses HEXA-NEURO §4.5).
 - **alien_index target**: 7 (algorithmic, not physical-limit).
 - **Falsifier**: top-1 Pareto requires axis size ≠ {6,5,4,5,4} for ≥ 1 axis on Akida catalog ⇒ DSE sizing wrong.

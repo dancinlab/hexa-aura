@@ -220,7 +220,6 @@ field sensitivity and write-gradient targets against **published** systems:
 match `clip` (budget), `cortex` (uses the channels), `safety` (caps the write
 field), and `.roadmap.hexa_aura §A.1`.
 
-**Not verified** (raw#10 C3): a fabricated RT-SC tile; a measured through-bone
 field map; the RT-SC material itself (deferred to `hexa-rtsc`); biocompatibility
 of the coating (pillar 4 + clinical). Those are §A.6 Stage-1+.
 
@@ -244,7 +243,6 @@ of the coating (pillar 4 + clinical). Those are §A.6 Stage-1+.
 
 ---
 
-## §8 Honest scope (raw#10 C3)
 
 `HEXA-RT-SC-NANOCOIL` is a **transducer design spec**: the geometry (μ=1 μm
 pitch), the channel topology (σ²=144 ch/tile, J₂=24 ch/macro-tile, 1296-ch hex
