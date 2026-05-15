@@ -72,7 +72,7 @@
   coil/ -> "subdir (1 items)"
   cortex/ -> "subdir (1 items)"
   docs/ -> "documentation (6 items)"
-  firmware/ -> "sim-only firmware models · firmware/sim/ (§A.6.1 stage C; isolated from verify/) (1 subdir)"
+  firmware/ -> "hexa-native firmware · sim/ (stage C, runnable) · hdl/ + mcu/ (stage D, compile-only skeleton, DEFERRED until board) — all isolated from verify/, 0 non-hexa per g2"
   papers/ -> "papers / publications (2 items)"
   safety/ -> "subdir (1 items)"
   state/ -> "runtime state (gitignored typically) (1 items)"

@@ -1,0 +1,106 @@
+#!hexa strict
+// ──────────────────────────────────────────────────────────────────────────
+// hexa-aura/firmware/hdl/coil_timing_controller.hexa — FPGA coil-timing skeleton (§A.6.1 stage D).
+//
+// @allow-relop-banned-file
+// @allow-bare-exec-file
+// @allow-silent-exit-file
+// @no-lock-needed
+// @resolver-bypass(reason="Compile-only structural skeleton; no hardware; no doc/network reads.")
+//
+// .roadmap.hexa_aura §A.6.1 stage D — HDL skeleton. The recipe table names a
+// Verilog artifact (`firmware/hdl/*.v`); per AGENTS.tape g2 (hexa-first) +
+// the project's hexa-native / 0-non-hexa discipline this is realized as a
+// HEXA-NATIVE register-transfer-style description instead — same logical
+// content (the τ=4-phase, sopfr-ms / 200 Hz read-frame finite-state machine
+// with the µs write-pulse slot and its register map), expressed in `.hexa`.
+//
+// **COMPILE-ONLY SKELETON · DEFERRED until the board arrives** (§A.6 step 4,
+// T4, out of RSC scope). It is NOT synthesised, NOT flashed, NOT a sim with
+// behavioural assertions (that is stage C, firmware/sim/). It parses/typechecks
+// and prints its register/timing map for review; it emits a `DEFERRED` token
+// (NOT a verify PASS-sentinel — this is a skeleton, not a verification gate).
+//
+// ISOLATED in firmware/hdl/ — NOT a verify/* script: NOT in run_all green core,
+// NOT in lint_numerics NUMERICS_SCRIPTS, NOT in saturation_check REQUIRED, NOT
+// in test_calculators CASES. Zero regression: verify inventories enumerate
+// `verify/` only. NOT closure: F-AURA-2/2a/2c stay OPEN; sat-1 /
+// __HEXA_AURA_RSC_SATURATED__ STOP / falsifier_check 100% code-layer 3-tier
+// unchanged.
+//
+// Run:  hexa run firmware/hdl/coil_timing_controller.hexa   (prints map, DEFERRED)
+// Authority: coil/doc/rt-sc-nanocoil.md + clip/doc/benchtop_v0_design.md (I1) + .roadmap.hexa_aura §A.6.1.
+// FALSIFIERS: F-AURA-2 (HDL skeleton — informs the future build, does not close)
+// ──────────────────────────────────────────────────────────────────────────
+
+// ── register / timing map (FPGA, nominal) ──
+let FPGA_CLK_HZ = 50000000            // 50 MHz nominal fabric clock
+let FRAME_HZ = 200                    // 1/(sopfr ms) read frame
+let TICKS_PER_FRAME = 250000          // FPGA_CLK_HZ / FRAME_HZ
+let TAU = 4                           // τ=4 multiplex phases
+let TICKS_PER_PHASE = 62500           // TICKS_PER_FRAME / TAU
+let PULSE_US = 10                     // µs write pulse
+let PULSE_TICKS = 500                 // FPGA_CLK_HZ * 10e-6
+
+// phase encoding (τ=4): sense-A · sense-B · null · calibrate
+let PH_SENSE_A = 0
+let PH_SENSE_B = 1
+let PH_NULL = 2
+let PH_CALIB = 3
+
+fn next_phase(p: int) -> int {
+    if p == PH_SENSE_A { return PH_SENSE_B }
+    if p == PH_SENSE_B { return PH_NULL }
+    if p == PH_NULL    { return PH_CALIB }
+    return PH_SENSE_A                  // wrap from PH_CALIB
+}
+
+fn phase_at(tick_in_frame: int) -> int {
+    // pure combinational decode: which τ=4 phase a frame-tick falls in
+    if tick_in_frame < TICKS_PER_PHASE          { return PH_SENSE_A }
+    if tick_in_frame < 2 * TICKS_PER_PHASE      { return PH_SENSE_B }
+    if tick_in_frame < 3 * TICKS_PER_PHASE      { return PH_NULL }
+    return PH_CALIB
+}
+
+fn pulse_active(tick_in_frame: int) -> bool {
+    // write pulse fires at the top of PH_SENSE_A for PULSE_TICKS
+    return tick_in_frame < PULSE_TICKS
+}
+
+fn phase_name(p: int) -> str {
+    if p == PH_SENSE_A { return "SENSE_A" }
+    if p == PH_SENSE_B { return "SENSE_B" }
+    if p == PH_NULL    { return "NULL" }
+    return "CALIB"
+}
+
+fn main() {
+    println("========================================================================")
+    println("  hexa-aura · firmware/hdl — coil-timing controller SKELETON (§A.6.1 stage D)")
+    println("  hexa-native realization (overrides the §A.6.1 Verilog plan per g2 hexa-first)")
+    println("========================================================================")
+    println("")
+    println("  register / timing map:")
+    println("    FPGA_CLK_HZ      = " + str(FPGA_CLK_HZ) + "  (nominal)")
+    println("    FRAME_HZ         = " + str(FRAME_HZ) + "  = 1/(sopfr ms)")
+    println("    TICKS_PER_FRAME  = " + str(TICKS_PER_FRAME))
+    println("    TAU (phases)     = " + str(TAU) + "  (sense-A·sense-B·null·calibrate)")
+    println("    TICKS_PER_PHASE  = " + str(TICKS_PER_PHASE))
+    println("    PULSE_US / TICKS = " + str(PULSE_US) + " µs / " + str(PULSE_TICKS) + " ticks")
+    println("")
+    println("  one-frame phase boundaries (combinational decode):")
+    let probes = [0, 500, 62500, 125000, 187500, 249999]
+    for t in probes {
+        let p = phase_at(t)
+        let pul = if pulse_active(t) { "PULSE" } else { "—" }
+        println("    tick " + str(t) + "  → phase " + phase_name(p) + "  [" + pul + "]")
+    }
+    println("")
+    println("  STATUS: compile-only structural skeleton. NOT synthesised, NOT flashed,")
+    println("  NOT a behavioural sim (that is firmware/sim/, stage C). Deferred until the")
+    println("  board arrives (§A.6 step 4, T4 — out of RSC code-layer scope).")
+    println("  F-AURA-2 stays OPEN; closure / saturation / falsifier_check unchanged.")
+    println("__HEXA_AURA_HDL_COIL_TIMING__ DEFERRED (board not present; §A.6 step 4)")
+    exit(0)
+}

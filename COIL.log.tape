@@ -56,3 +56,7 @@
 @A commit_stageC :: coil [d=2026-05-15 ok]
   <- commit_495e30f
   => "Cycle 5 §A.6.1 stage C: + firmware/sim/coil_driver_sim.hexa — DAC→RL drive-chain sim (12-bit current DAC, µs write pulse, τ=4/200 Hz frame, ≤50 mW). Prototype of MCU firmware, NOT firmware; sim-only, no hardware-in-the-loop. ISOLATED in firmware/sim/ — not a verify/* script (not in run_all green core / lint / saturation). Firmware-sim layer NOT closure: F-AURA-2/2c stay OPEN; sat-1/STOP/100% code-layer 3-tier unchanged; T4 = §A.6."
+
+@A commit_stageD :: coil [d=2026-05-15 ok]
+  <- commit_stageC
+  => "Cycle 6 §A.6.1 stage D: + firmware/hdl/coil_timing_controller.hexa — τ=4/200 Hz read-frame FSM + µs write-pulse slot + register map. HEXA-NATIVE (overrides the §A.6.1 Verilog plan per AGENTS.tape g2 hexa-first; 0 .v). COMPILE-ONLY structural skeleton, emits DEFERRED token (NOT __ PASS), NOT synthesised/flashed, NOT a sim. ISOLATED in firmware/hdl/. Deferred until board (§A.6 step 4, T4). NOT closure: F-AURA-2 stays OPEN; sat-1/STOP/falsifier_check unchanged."

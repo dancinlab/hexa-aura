@@ -67,6 +67,7 @@
   t3_fem_parity -> "verify/numerics_coil_fem_parity.hexa (Cycle 4 — vs exact Biot–Savart loop · TMS figure-8 · SQUID/OPM floor; g3/f1 parity; green-gate deferred)"
   fem_cross -> "verify/numerics_fem_cross_pillar.hexa (coupled-FEM cross-cutter — RT-SC R=0 ⇒ safety thermal cap closes; shared)"
   firmware_sim -> "firmware/sim/coil_driver_sim.hexa (Cycle 5 — §A.6.1 stage C: DAC→RL drive chain, µs pulse, ≤50 mW; sim-only, isolated from verify/)"
+  firmware_hdl -> "firmware/hdl/coil_timing_controller.hexa (Cycle 6 — §A.6.1 stage D: τ=4/200 Hz FSM + µs pulse slot; hexa-native compile-only skeleton, DEFERRED until board)"
   cli -> "cli/hexa-aura.hexa coil"
 
 @D d_pitch := "mu-1um-litho-pitch" :: coil [required active]

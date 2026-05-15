@@ -1,0 +1,108 @@
+#!hexa strict
+// ──────────────────────────────────────────────────────────────────────────
+// hexa-aura/firmware/mcu/watchdog_mcu.hexa — MCU seizure-watchdog skeleton (§A.6.1 stage D).
+//
+// @allow-relop-banned-file
+// @allow-bare-exec-file
+// @allow-silent-exit-file
+// @no-lock-needed
+// @resolver-bypass(reason="Compile-only structural skeleton; no hardware; no doc/network reads.")
+//
+// .roadmap.hexa_aura §A.6.1 stage D — MCU skeleton. The recipe table names a
+// Rust/C artifact (`firmware/mcu/*.rs`); per AGENTS.tape g2 (hexa-first) + the
+// hexa-native / 0-non-hexa discipline this is realized HEXA-NATIVELY — the
+// same logical content (the safety-watchdog MCU control-loop FSM:
+// init → sample → evaluate → trip/cutoff, with λ=2 redundant lanes and the
+// IRQ / register map), expressed in `.hexa`.
+//
+// **COMPILE-ONLY SKELETON · DEFERRED until the board arrives** (§A.6 step 4,
+// T4, out of RSC scope). NOT compiled-for-target, NOT flashed, NOT a sim with
+// behavioural assertions (the runnable detector model is stage C,
+// firmware/sim/watchdog_adc_sim.hexa). It parses/typechecks and prints its
+// state table + register map; it emits a `DEFERRED` token (NOT a verify
+// PASS-sentinel — this is a skeleton, not a verification gate).
+//
+// ISOLATED in firmware/mcu/ — NOT a verify/* script (NOT in run_all green core
+// / lint_numerics / saturation_check / test_calculators). Zero regression:
+// verify inventories enumerate `verify/` only. NOT closure: F-AURA-4/4d stay
+// OPEN; sat-1 / __HEXA_AURA_RSC_SATURATED__ STOP / falsifier_check 100%
+// code-layer 3-tier unchanged.
+//
+// Run:  hexa run firmware/mcu/watchdog_mcu.hexa   (prints map, DEFERRED)
+// Authority: safety/doc/cortical-safety.md (watchdog) + clip/doc/benchtop_v0_design.md (I5) + .roadmap.hexa_aura §A.6.1.
+// FALSIFIERS: F-AURA-4 (MCU skeleton — informs the future build, does not close)
+// ──────────────────────────────────────────────────────────────────────────
+
+// ── register / IRQ map (MCU, nominal) ──
+let ADC_RATE_HZ = 1000                // ≥ 1 kS/s sample clock
+let WIN = 256                         // sliding-window length (samples)
+let IRQ_ADC = 16                      // ADC-ready vector
+let IRQ_TIMER = 17                    // window-tick vector
+let GPIO_CUTOFF = 5                   // hard power-cutoff line (active-high)
+let GPIO_HEARTBEAT = 6                // host watchdog heartbeat
+let FAR_FLOOR_PCT = 1                 // μ=1 → 1 % false-alarm floor
+let LANES = 2                         // λ=2 redundant detector lanes
+let THR_LANE_A = 3                    // 3× baseline-rms
+let THR_LANE_B = 4                    // 4× baseline-rms
+
+// watchdog FSM states
+let ST_INIT = 0
+let ST_SAMPLE = 1
+let ST_EVAL = 2
+let ST_TRIP = 3
+
+fn next_state(s: int, window_full: bool, both_lanes_flag: bool) -> int {
+    if s == ST_INIT                              { return ST_SAMPLE }
+    if s == ST_SAMPLE && window_full == false    { return ST_SAMPLE }
+    if s == ST_SAMPLE && window_full            { return ST_EVAL }
+    if s == ST_EVAL  && both_lanes_flag         { return ST_TRIP }
+    if s == ST_EVAL  && both_lanes_flag == false { return ST_SAMPLE }
+    return ST_TRIP                                // ST_TRIP is terminal (latched)
+}
+
+fn state_name(s: int) -> str {
+    if s == ST_INIT   { return "INIT" }
+    if s == ST_SAMPLE { return "SAMPLE" }
+    if s == ST_EVAL   { return "EVAL" }
+    return "TRIP"
+}
+
+fn main() {
+    println("========================================================================")
+    println("  hexa-aura · firmware/mcu — seizure-watchdog MCU SKELETON (§A.6.1 stage D)")
+    println("  hexa-native realization (overrides the §A.6.1 Rust/C plan per g2 hexa-first)")
+    println("========================================================================")
+    println("")
+    println("  register / IRQ map:")
+    println("    ADC_RATE_HZ   = " + str(ADC_RATE_HZ) + "  (≥ 1 kS/s)")
+    println("    WIN           = " + str(WIN) + " samples")
+    println("    IRQ_ADC       = " + str(IRQ_ADC) + "   IRQ_TIMER = " + str(IRQ_TIMER))
+    println("    GPIO_CUTOFF   = " + str(GPIO_CUTOFF) + "    GPIO_HEARTBEAT = " + str(GPIO_HEARTBEAT))
+    println("    FAR floor     = " + str(FAR_FLOOR_PCT) + " %  (μ=1)")
+    println("    LANES (λ)     = " + str(LANES) + "  thresholds " + str(THR_LANE_A) + "× / " + str(THR_LANE_B) + "× baseline-rms")
+    println("")
+    println("  control-loop FSM (init → sample → eval → trip; λ=2 lanes must concur):")
+    let mut s = ST_INIT
+    let trace = [
+        [0, 0],    // INIT → SAMPLE
+        [0, 0],    // SAMPLE (window not full)
+        [1, 0],    // SAMPLE window full → EVAL
+        [1, 0],    // EVAL, no concurrent flag → SAMPLE
+        [1, 1],    // SAMPLE window full → EVAL
+        [1, 1]     // EVAL, both lanes flag → TRIP
+    ]
+    for step in trace {
+        let wf = step[0] == 1
+        let bf = step[1] == 1
+        let ns = next_state(s, wf, bf)
+        println("    " + state_name(s) + "  (win_full=" + str(wf) + ", both_lanes=" + str(bf) + ")  → " + state_name(ns))
+        s = ns
+    }
+    println("")
+    println("  STATUS: compile-only structural skeleton. NOT target-compiled, NOT flashed,")
+    println("  NOT a behavioural sim (that is firmware/sim/watchdog_adc_sim.hexa, stage C).")
+    println("  Deferred until the board arrives (§A.6 step 4, T4 — out of RSC scope).")
+    println("  F-AURA-4 stays OPEN; closure / saturation / falsifier_check unchanged.")
+    println("__HEXA_AURA_MCU_WATCHDOG__ DEFERRED (board not present; §A.6 step 4)")
+    exit(0)
+}

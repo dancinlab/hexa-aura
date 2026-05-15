@@ -74,7 +74,11 @@ sopfr(6) = 2 + 3 = 5      μ(6) = 1      λ(6) = 2 (Liouville)
 
 진입점: `hexa run cli/hexa-aura.hexa verify [<sub>]`; green-core 묶음은 `verify/run_all.hexa` (19, monotone never PASS→FAIL). 자세한 매핑은 `docs/numerics_methodology.md`.
 
-**§A.6.1 stage C — `firmware/sim/`** (Cycle 5, 첫 non-verify 코드 레이어, `verify/`와 격리): `coil_driver_sim.hexa` (DAC→RL 구동 체인, µs 펄스, ≤50 mW) · `watchdog_adc_sim.hexa` (ADC→발작 검출, μ=1→1% FAR, λ=2 lane). standalone 실행 (`hexa run firmware/sim/<name>.hexa`) — lint/saturation/run_all/test 인벤토리에 **미포함** (회귀 위험 0). MCU 펌웨어의 sim 프로토타입이지 펌웨어 아님; F-AURA sub-ID OPEN 불변.
+**§A.6.1 `firmware/` (모두 hexa-native, `verify/`와 격리, 회귀 위험 0)**:
+- **stage C — `firmware/sim/`** (Cycle 5, 첫 non-verify 레이어, 실행 가능): `coil_driver_sim.hexa` (DAC→RL 구동, µs 펄스, ≤50 mW) · `watchdog_adc_sim.hexa` (ADC→발작 검출, μ=1→1% FAR, λ=2). sim 프로토타입이지 펌웨어 아님.
+- **stage D — `firmware/hdl/` + `firmware/mcu/`** (Cycle 6, 컴파일-only 스켈레톤): `coil_timing_controller.hexa` (τ=4/200 Hz FSM + µs slot) · `watchdog_mcu.hexa` (init→sample→eval→trip FSM, λ=2, IRQ/reg map). §A.6.1의 Verilog/Rust 계획을 `g2` hexa-first로 오버라이드 → **0 .v / 0 .rs / 0 .py**. `__ DEFERRED` 토큰(NOT `__ PASS`), 합성/플래시 안 함, **보드 도착까지 deferred** (§A.6 step 4, T4).
+
+전부 lint/saturation/run_all/test 인벤토리 **미포함**, F-AURA sub-ID OPEN·sat-1·STOP·falsifier_check 불변 (closure 아닌 layer).
 
 ## 🛡️ Governance hierarchy (precedent SSOT)
 
@@ -103,6 +107,8 @@ sopfr(6) = 2 + 3 = 5      μ(6) = 1      λ(6) = 2 (Liouville)
 | 🔧 `verify/run_all.hexa` | 19-script green-core aggregator (RC=0 = all green; monotone) |
 | 🔧 `firmware/sim/coil_driver_sim.hexa` | §A.6.1 stage C — DAC→RL drive chain (sim-only, isolated from verify/) |
 | 🔧 `firmware/sim/watchdog_adc_sim.hexa` | §A.6.1 stage C — ADC→seizure detector, μ=1→1% FAR, λ=2 (sim-only) |
+| 🔧 `firmware/hdl/coil_timing_controller.hexa` | §A.6.1 stage D — τ=4/200 Hz FSM skeleton (hexa-native, compile-only, DEFERRED until board) |
+| 🔧 `firmware/mcu/watchdog_mcu.hexa` | §A.6.1 stage D — watchdog control-loop FSM skeleton (hexa-native, compile-only, DEFERRED) |
 | 🔧 `install.hexa` | warn-only CLI selftest (no hard build deps) |
 | 🌐 `https://github.com/dancinlab/echoes` | parent project — `LATTICE_POLICY.md` authority |
 | 🌐 `https://github.com/dancinlab/hexa-rtsc` | 🔴 critical dep — F-AURA-2 DEMOTE 트리거 |

@@ -66,6 +66,7 @@
   t3_fem_parity -> "verify/numerics_safety_fem_parity.hexa (Cycle 4 — vs Pennes-1948 · brain k · perfused-tissue L_th · CEM43/ICNIRP; g3/f1 parity; green-gate deferred)"
   fem_cross -> "verify/numerics_fem_cross_pillar.hexa (coupled-FEM cross-cutter — SAR_design ⇒ Pennes ΔT_ss ≤ φ/τ=0.5 K; shared)"
   firmware_sim -> "firmware/sim/watchdog_adc_sim.hexa (Cycle 5 — §A.6.1 stage C: ADC→seizure detector, μ=1→1% FAR floor, λ=2 lanes; sim-only, isolated from verify/)"
+  firmware_mcu -> "firmware/mcu/watchdog_mcu.hexa (Cycle 6 — §A.6.1 stage D: init→sample→eval→trip FSM, λ=2 lanes, IRQ/reg map; hexa-native compile-only skeleton, DEFERRED until board)"
   cli -> "cli/hexa-aura.hexa safety"
 
 @D d_shannon := "shannon-k-le-1.5" :: safety [required active]

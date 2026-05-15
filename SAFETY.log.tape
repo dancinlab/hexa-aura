@@ -56,3 +56,7 @@
 @A commit_stageC :: safety [d=2026-05-15 ok]
   <- commit_495e30f
   => "Cycle 5 §A.6.1 stage C: + firmware/sim/watchdog_adc_sim.hexa — EEG-watchdog ADC→detector sim (16-bit ADC ≥1 kS/s, sliding-window energy detector, deterministic synthetic burst, μ=1→1% FAR floor, λ=2 redundant lanes). Prototype of MCU watchdog firmware, NOT firmware; sim-only. ISOLATED in firmware/sim/ — not a verify/* script. Firmware-sim layer NOT closure: F-AURA-4/4d stay OPEN; sat-1/STOP/100% code-layer 3-tier unchanged; T4 (real-EEG ROC) = §A.6."
+
+@A commit_stageD :: safety [d=2026-05-15 ok]
+  <- commit_stageC
+  => "Cycle 6 §A.6.1 stage D: + firmware/mcu/watchdog_mcu.hexa — init→sample→eval→trip control-loop FSM + λ=2 redundant lanes + IRQ/register map. HEXA-NATIVE (overrides the §A.6.1 Rust/C plan per AGENTS.tape g2 hexa-first; 0 .rs). COMPILE-ONLY structural skeleton, emits DEFERRED token (NOT __ PASS), NOT target-compiled/flashed, NOT a sim. ISOLATED in firmware/mcu/. Deferred until board (§A.6 step 4, T4). NOT closure: F-AURA-4 stays OPEN; sat-1/STOP/falsifier_check unchanged."
