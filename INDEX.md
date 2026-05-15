@@ -1,6 +1,6 @@
 # ✨ hexa-aura — substrate SSOT INDEX
 
-> 4 pillar substrate (clip · coil · cortex · safety) + 5-doc atlas + RSC verify surface (33 files · 19 green-gated · 9 Cycle-3/4 FEM-tier deferred). **n=6 invariant lattice** `σ(6)·φ(6) = n·τ(6) = J₂ = 24`. Sister of `hexa-cern` · `hexa-rtsc` · `hexa-bio` · `hexa-chip` · `hexa-ufo` under `dancinlab/echoes` parent. (2026-05-15)
+> 4 pillar substrate (clip · coil · cortex · safety) + 5-doc atlas + RSC verify surface (33 files · 19 green-gated · 9 Cycle-3/4 FEM-tier deferred) + §A.6.1 stage A–D code-layer halves DONE (Cycle 3–6) + §A.5 D1/D2/D3 resolved. **n=6 invariant lattice** `σ(6)·φ(6) = n·τ(6) = J₂ = 24`. Sister of `hexa-cern` · `hexa-rtsc` · `hexa-bio` · `hexa-chip` · `hexa-ufo` under `dancinlab/echoes` parent. (2026-05-15)
 
 ## 🟢 핵심 10 tape (root, v1.2 architecture-vs-log split)
 
@@ -118,6 +118,18 @@ sopfr(6) = 2 + 3 = 5      μ(6) = 1      λ(6) = 2 (Liouville)
 | 🌐 `https://github.com/dancinlab/hexa-brain` | 🟠 sister — cortex pillar working-pipeline 검증 |
 | 🌐 `https://github.com/dancinlab/hexa-cern` | sister RSC 모범 사례 (29/29 PASS) |
 
+## 🔄 Cycle 3–6 · §A.6.1 stage A–D (2026-05-15, post-v1.0.0 — depth, NOT closure)
+
+| Cycle | §A.6.1 | 산출물 | green-gate |
+|--|--|--|--|
+| **3** | stage B | `numerics_{clip,coil,cortex,safety}_fem.hexa` + `numerics_fem_cross_pillar.hexa` (이산 해 + O(h²) 수렴) | deferred |
+| **4** | stage B + A | `numerics_*_fem_parity.hexa` ×4 (발표문헌 parity, g3/f1) + `clip/doc/benchtop_v0_design.md` | deferred / docs |
+| **5** | stage C | `firmware/sim/coil_driver_sim.hexa` + `watchdog_adc_sim.hexa` (runnable sim, verify/와 격리) | n/a (격리) |
+| **6** | stage D | `firmware/hdl/coil_timing_controller.hexa` + `firmware/mcu/watchdog_mcu.hexa` (hexa-native compile-only skeleton, DEFERRED) | n/a (격리) |
+| — | §A.5 | D1 `d_cli_dispatch` · D2 `d_rtsc_xlink` · D3 `d_m1_lane` resolved (@D SSOT) ; D4/D5/D6 owner-pending | — |
+
+> 코드-layer가 닿을 수 있는 §A.6.1 전 단계(A–D) 소진. **전부 depth/track 확장이지 closure 아님** — sat-1 / `__HEXA_AURA_RSC_SATURATED__ STOP` / `falsifier_check` 15-sub-ID-OPEN / 100% code-layer 3-tier · run_all green-core 19 모두 불변, never PASS→FAIL. T4(§A.6 step 1–5) 상세는 `BENCHTOP.tape`.
+
 ## 📊 Adoption phase
 
 | Phase | scope | status |
@@ -125,9 +137,10 @@ sopfr(6) = 2 + 3 = 5      μ(6) = 1      λ(6) = 2 (Liouville)
 | **v0.1.0-pre** | 11-doc bundle (cognitive + sensory verbs co-located) | superseded 2026-05-09 |
 | **v0.1.0** | 5-doc CHIP-substrate bundle (BUNDLE_FIRST) | superseded 2026-05-10 |
 | **v1.0.0** | 4-pillar substrate + 5-doc atlas + 19-script RSC verify + 100% code-layer closure | ✅ RELEASED 2026-05-10 |
+| **post-v1.0.0** | Cycle 3–6: §A.6.1 stage A–D code-layer halves + §A.5 D1/D2/D3 (depth, closure 불변) | ✅ 2026-05-15 |
 | **v1.1.0** | hexa-rtsc / hexa-brain cross-verify | 🔄 ~2026-09 (planned) |
 | **v1.2.0** | safety regulatory-pathway 확장 (FDA/KFDA class III pre-sub) | planned ~2026-12 |
-| **v2.0.0** | Stage-1+ bench prototype (out of RSC code-layer) | ASPIRATIONAL ~2027-Q3 |
+| **v2.0.0** | Stage-1+ bench prototype (out of RSC code-layer; T4 — see `BENCHTOP.tape`) | ASPIRATIONAL ~2027-Q3 |
 
 ## ⚖️ Scope discipline (위임)
 
