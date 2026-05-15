@@ -52,3 +52,7 @@
 @A commit_495e30f :: safety [d=2026-05-15 ok]
   => "Cycle 3+4 closure-deepening: + verify/numerics_safety_fem.hexa (discretized 1D Pennes operator residual on ΔT0·exp(−r/L_th) → 0 at O(h²); ΔT0 ≤ φ/τ=0.5 K cap) + verify/numerics_safety_fem_parity.hexa (vs Pennes-1948 · brain k · perfused-tissue L_th · CEM43/ICNIRP, g3/f1 parity-or-safer). T2/T3 depth, NOT closure — F-AURA-4/4b/4c stay OPEN; green-gate deferred (run_all 19 unchanged); sat-1/STOP/100% code-layer 3-tier unchanged. T4 (SAR/thermal/regulatory) still §A.6, out of scope."
   |> "verify/numerics_fem_cross_pillar.hexa (coupled chain: SAR_design ⇒ Pennes ΔT_ss ≤ 0.5 K)"
+
+@A commit_stageC :: safety [d=2026-05-15 ok]
+  <- commit_495e30f
+  => "Cycle 5 §A.6.1 stage C: + firmware/sim/watchdog_adc_sim.hexa — EEG-watchdog ADC→detector sim (16-bit ADC ≥1 kS/s, sliding-window energy detector, deterministic synthetic burst, μ=1→1% FAR floor, λ=2 redundant lanes). Prototype of MCU watchdog firmware, NOT firmware; sim-only. ISOLATED in firmware/sim/ — not a verify/* script. Firmware-sim layer NOT closure: F-AURA-4/4d stay OPEN; sat-1/STOP/100% code-layer 3-tier unchanged; T4 (real-EEG ROC) = §A.6."

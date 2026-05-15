@@ -66,6 +66,7 @@
   t3_parity -> "verify/numerics_coil_parity.hexa (Neuralink-N1 1024 · Utah 96 · Stentrode 16 · SQUID-MEG · OPM-MEG · TMS figure-8)"
   t3_fem_parity -> "verify/numerics_coil_fem_parity.hexa (Cycle 4 — vs exact Biot–Savart loop · TMS figure-8 · SQUID/OPM floor; g3/f1 parity; green-gate deferred)"
   fem_cross -> "verify/numerics_fem_cross_pillar.hexa (coupled-FEM cross-cutter — RT-SC R=0 ⇒ safety thermal cap closes; shared)"
+  firmware_sim -> "firmware/sim/coil_driver_sim.hexa (Cycle 5 — §A.6.1 stage C: DAC→RL drive chain, µs pulse, ≤50 mW; sim-only, isolated from verify/)"
   cli -> "cli/hexa-aura.hexa coil"
 
 @D d_pitch := "mu-1um-litho-pitch" :: coil [required active]

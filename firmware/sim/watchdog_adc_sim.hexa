@@ -1,0 +1,159 @@
+#!hexa strict
+// ──────────────────────────────────────────────────────────────────────────
+// hexa-aura/firmware/sim/watchdog_adc_sim.hexa — EEG-watchdog ADC chain, sim-only (§A.6.1 stage C).
+//
+// @allow-relop-banned-file
+// @allow-bare-exec-file
+// @allow-silent-exit-file
+// @no-lock-needed
+// @resolver-bypass(reason="Pure local sim; deterministic synthetic EEG; no hardware-in-the-loop; no reads.")
+//
+// .roadmap.hexa_aura §A.6.1 stage C — sim-only model of the safety pillar's
+// EEG-watchdog firmware path: synthetic cortical rhythm → N-bit ADC (≥ 1 kS/s)
+// → sliding-window energy detector targeting the μ=1 → 1 % false-alarm floor
+// (F-AURA-4d), with λ=2 redundant detector lanes (the pillar-4 redundant-lane
+// rule). The input is DETERMINISTIC (sum of sinusoids + a known injected
+// seizure-like burst) — no RNG — so the result is reproducible.
+//
+// PROTOTYPE of the real MCU watchdog firmware, NOT the firmware: sim-only, no
+// hardware-in-the-loop, no flash target. ISOLATED in firmware/sim/ — NOT a
+// verify/* script (NOT in run_all green core / lint_numerics / saturation
+// REQUIRED). Firmware-sim layer, NOT closure: F-AURA-4/4d stay OPEN; sat-1 /
+// __HEXA_AURA_RSC_SATURATED__ STOP / falsifier_check 100% code-layer 3-tier
+// unchanged. T4 (real EEG ROC / bench) = §A.6, out of RSC scope.
+//
+// Run:  hexa run firmware/sim/watchdog_adc_sim.hexa
+// Authority: safety/doc/cortical-safety.md (watchdog) + clip/doc/benchtop_v0_design.md (I5) + .roadmap.hexa_aura §A.6.1.
+// FALSIFIERS: F-AURA-4, F-AURA-4d (firmware-sim layer — informs, does not close)
+// ──────────────────────────────────────────────────────────────────────────
+
+use "self/runtime/math_pure"
+
+let mut RUN = 0
+let mut FAIL = 0
+fn _check(ok: bool, label: str, detail: str) {
+    RUN = RUN + 1
+    let mark = if ok { "PASS" } else { "FAIL" }
+    if ok == false { FAIL = FAIL + 1 }
+    println("  [" + mark + "] " + label)
+    if detail.len() > 0 { println("         · " + detail) }
+}
+
+let PI = 3.14159265358979323846
+// n=6 + ADC/detector params
+let FS = 1000.0                       // 1 kS/s sample rate (≥ 1 kS/s)
+let WIN = 256                         // sliding-window length (samples)
+let N_WIN = 31                        // 31 non-overlapping windows ≈ 7.9 s
+let ADC_BITS = 16.0
+let ADC_FS = 1.0e-3                   // ±500 µV ⇒ 1 mV span
+let ADC_LSB = ADC_FS / 65536.0        // 2^16
+let FAR_FLOOR = 0.01                  // μ=1 → 1 % false-alarm floor
+// synthetic EEG (volts): baseline rhythms + injected seizure burst
+let A_THETA = 15.0e-6                  // 5 Hz
+let A_ALPHA = 20.0e-6                  // 10 Hz
+let A_BETA  = 10.0e-6                  // 20 Hz
+let A_SEIZ  = 300.0e-6                 // 3 Hz high-amplitude spike-wave
+let SEIZ_T0 = 4.0                      // s — burst onset
+let SEIZ_T1 = 5.0                      // s — burst offset
+
+fn adc_quantize(v: float) -> float {
+    let codes = v / ADC_LSB
+    let ci = int(codes + (if codes >= 0.0 { 0.5 } else { -0.5 }))
+    return (ci + 0.0) * ADC_LSB
+}
+
+fn eeg_sample(n: int) -> float {
+    let t = (n + 0.0) / FS
+    let base = A_THETA * sin_pure(2.0*PI*5.0*t) + A_ALPHA * sin_pure(2.0*PI*10.0*t) + A_BETA * sin_pure(2.0*PI*20.0*t)
+    let mut seiz = 0.0
+    if t >= SEIZ_T0 && t < SEIZ_T1 { seiz = A_SEIZ * sin_pure(2.0*PI*3.0*t) }
+    return adc_quantize(base + seiz)
+}
+
+fn win_rms(w: int) -> float {
+    let mut e = 0.0
+    let mut k = 0
+    while k < WIN {
+        let n = w * WIN + k
+        let x = eeg_sample(n)
+        e = e + x * x
+        k = k + 1
+    }
+    return sqrt_pure(e / (WIN + 0.0))
+}
+
+fn is_seizure_window(w: int) -> bool {
+    let center_n = w * WIN + WIN / 2
+    let t = (center_n + 0.0) / FS
+    return t >= SEIZ_T0 && t < SEIZ_T1
+}
+
+fn main() {
+    println("========================================================================")
+    println("  hexa-aura · firmware/sim — EEG-watchdog ADC chain (§A.6.1 stage C, sim-only)")
+    println("========================================================================")
+    println("")
+
+    // ── 1. ADC resolution adequate for µV-scale EEG ──
+    let res_ratio = A_ALPHA / ADC_LSB
+    _check(res_ratio > 100.0, "ADC resolution: alpha 20 µV spans " + str(res_ratio) + " LSB ( > 100, 16-bit ±500 µV )", "LSB = " + str(ADC_LSB) + " V")
+
+    // ── 2. baseline-rms estimate from the first 8 (known-baseline) windows ──
+    let mut base_sum = 0.0
+    let mut bk = 0
+    while bk < 8 {
+        base_sum = base_sum + win_rms(bk)
+        bk = bk + 1
+    }
+    let base_rms = base_sum / 8.0
+    let thr_a = 3.0 * base_rms                       // lane A threshold (3×)
+    let thr_b = 4.0 * base_rms                       // lane B threshold (4×) — λ=2 redundancy
+    _check(base_rms > 0.0, "baseline EEG rms ≈ " + str(base_rms) + " V (θ+α+β rhythms)", "")
+
+    // ── 3. sweep windows: sensitivity + FAR (μ=1 → 1 %) + λ=2 lanes ──
+    let mut seiz_total = 0
+    let mut seiz_hit_a = 0
+    let mut seiz_hit_b = 0
+    let mut base_total = 0
+    let mut base_fa_a = 0
+    let mut first_detect_w = -1
+    let mut w = 0
+    while w < N_WIN {
+        let r = win_rms(w)
+        let flag_a = r > thr_a
+        let flag_b = r > thr_b
+        if is_seizure_window(w) {
+            seiz_total = seiz_total + 1
+            if flag_a { seiz_hit_a = seiz_hit_a + 1 }
+            if flag_b { seiz_hit_b = seiz_hit_b + 1 }
+            if flag_a && flag_b && first_detect_w < 0 { first_detect_w = w }
+        } else {
+            base_total = base_total + 1
+            if flag_a { base_fa_a = base_fa_a + 1 }
+        }
+        w = w + 1
+    }
+
+    _check(seiz_total > 0 && seiz_hit_a == seiz_total, "sensitivity: all " + str(seiz_total) + " seizure windows flagged (lane A 3×)", "300 µV 3 Hz burst ≫ baseline")
+    _check(seiz_hit_b == seiz_total, "λ=2 redundancy: lane B (4×) independently agrees on all seizure windows", "two thresholds concur ⇒ redundant-lane rule")
+    let far = if base_total > 0 { (base_fa_a + 0.0) / (base_total + 0.0) } else { 1.0 }
+    _check(far <= FAR_FLOOR, "false-alarm rate = " + str(far) + " ≤ μ=1 → 1 % floor over " + str(base_total) + " baseline windows (F-AURA-4d)", str(base_fa_a) + " false alarms")
+
+    // ── 4. detection latency within a bounded number of windows ──
+    let onset_w = int(SEIZ_T0 * FS / (WIN + 0.0))
+    let latency_w = if first_detect_w >= 0 { first_detect_w - onset_w } else { 999 }
+    _check(first_detect_w >= 0 && latency_w <= 2, "detection latency = " + str(latency_w) + " windows ( ≤ 2, ≈ " + str((latency_w + 1) * WIN / 1000) + " s )", "onset window " + str(onset_w))
+
+    // ── 5. determinism (re-run a window ⇒ identical rms) ──
+    _check(abs_f(win_rms(16) - win_rms(16)) < 1.0e-18, "deterministic: repeated window rms identical (no RNG)", "")
+
+    println("")
+    println("========================================================================")
+    let pass_n = RUN - FAIL
+    println("  " + str(pass_n) + "/" + str(RUN) + " watchdog-ADC sim checks passed")
+    if FAIL > 0 { println("__HEXA_AURA_SIM_WATCHDOG_ADC__ FAIL"); exit(1) }
+    println("  ADC→detector flags the synthetic burst, FAR ≤ 1 % (μ=1), λ=2 lanes agree; firmware-sim prototype consistent.")
+    println("  (Stage C sim-only — F-AURA-4/4d stay OPEN; not the MCU firmware, not a real-EEG ROC; T4 = §A.6.)")
+    println("__HEXA_AURA_SIM_WATCHDOG_ADC__ PASS")
+    exit(0)
+}

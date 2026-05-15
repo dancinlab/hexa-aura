@@ -74,6 +74,8 @@ sopfr(6) = 2 + 3 = 5      μ(6) = 1      λ(6) = 2 (Liouville)
 
 진입점: `hexa run cli/hexa-aura.hexa verify [<sub>]`; green-core 묶음은 `verify/run_all.hexa` (19, monotone never PASS→FAIL). 자세한 매핑은 `docs/numerics_methodology.md`.
 
+**§A.6.1 stage C — `firmware/sim/`** (Cycle 5, 첫 non-verify 코드 레이어, `verify/`와 격리): `coil_driver_sim.hexa` (DAC→RL 구동 체인, µs 펄스, ≤50 mW) · `watchdog_adc_sim.hexa` (ADC→발작 검출, μ=1→1% FAR, λ=2 lane). standalone 실행 (`hexa run firmware/sim/<name>.hexa`) — lint/saturation/run_all/test 인벤토리에 **미포함** (회귀 위험 0). MCU 펌웨어의 sim 프로토타입이지 펌웨어 아님; F-AURA sub-ID OPEN 불변.
+
 ## 🛡️ Governance hierarchy (precedent SSOT)
 
 | Layer | SSOT | hexa-aura 가 상속하는 것 |
@@ -98,7 +100,9 @@ sopfr(6) = 2 + 3 = 5      μ(6) = 1      λ(6) = 2 (Liouville)
 | 📁 `TAPE-AUDIT.md` | .tape 채택 ledger |
 | 📁 `CHANGELOG.md` · `RELEASE_NOTES_v1.0.0.md` · `TODO.md` | 표준 18-block |
 | 🔧 `cli/hexa-aura.hexa` | 4 pillar verb + 5 atlas verb + `status` + `selftest` + `verify [<sub>]` |
-| 🔧 `verify/run_all.hexa` | 19-script aggregator (RC=0 = all green) |
+| 🔧 `verify/run_all.hexa` | 19-script green-core aggregator (RC=0 = all green; monotone) |
+| 🔧 `firmware/sim/coil_driver_sim.hexa` | §A.6.1 stage C — DAC→RL drive chain (sim-only, isolated from verify/) |
+| 🔧 `firmware/sim/watchdog_adc_sim.hexa` | §A.6.1 stage C — ADC→seizure detector, μ=1→1% FAR, λ=2 (sim-only) |
 | 🔧 `install.hexa` | warn-only CLI selftest (no hard build deps) |
 | 🌐 `https://github.com/dancinlab/echoes` | parent project — `LATTICE_POLICY.md` authority |
 | 🌐 `https://github.com/dancinlab/hexa-rtsc` | 🔴 critical dep — F-AURA-2 DEMOTE 트리거 |

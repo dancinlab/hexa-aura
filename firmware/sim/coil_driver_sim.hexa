@@ -1,0 +1,141 @@
+#!hexa strict
+// ──────────────────────────────────────────────────────────────────────────
+// hexa-aura/firmware/sim/coil_driver_sim.hexa — coil-driver DAC chain, sim-only (§A.6.1 stage C).
+//
+// @allow-relop-banned-file
+// @allow-bare-exec-file
+// @allow-silent-exit-file
+// @no-lock-needed
+// @resolver-bypass(reason="Pure local sim; no hardware-in-the-loop; no doc/network reads.")
+//
+// .roadmap.hexa_aura §A.6.1 stage C — the FIRST non-verify code layer. A
+// sim-only model of the RT-SC coil-driver firmware path: a digital write-pulse
+// codeword → N-bit current-DAC (quantized) → RL drive loop (L = 1 µH planar
+// μ=1 µm-pitch nano-coil, R_par = 50 mΩ lead) over the τ=4-phase, sopfr-ms
+// (200 Hz) read frame. It reuses the numerics_coil_solver RL physics but adds
+// the *firmware* concerns: DAC quantization, sample-clock timing, pulse-area
+// fidelity, and the ≤ 50 mW thermal budget.
+//
+// This is a PROTOTYPE of the real MCU firmware, NOT the firmware: sim-only, no
+// hardware-in-the-loop, no flash target, no RT-SC material (→ hexa-rtsc). It is
+// ISOLATED in firmware/sim/ — NOT a verify/* script: it is NOT in
+// run_all.hexa's green core, NOT in lint_numerics NUMERICS_SCRIPTS, NOT in
+// saturation_check REQUIRED. It adds a firmware-sim layer, NOT closure:
+// F-AURA-2/2a/2c stay OPEN; sat-1 / __HEXA_AURA_RSC_SATURATED__ STOP /
+// falsifier_check 100% code-layer 3-tier all unchanged. T4 (bench / built
+// driver) = §A.6, out of RSC scope.
+//
+// Run:  hexa run firmware/sim/coil_driver_sim.hexa
+// Authority: coil/doc/rt-sc-nanocoil.md + clip/doc/benchtop_v0_design.md (I1) + .roadmap.hexa_aura §A.6.1.
+// FALSIFIERS: F-AURA-2, F-AURA-2c (firmware-sim layer — informs, does not close)
+// ──────────────────────────────────────────────────────────────────────────
+
+use "self/runtime/math_pure"
+
+let mut RUN = 0
+let mut FAIL = 0
+fn _check(ok: bool, label: str, detail: str) {
+    RUN = RUN + 1
+    let mark = if ok { "PASS" } else { "FAIL" }
+    if ok == false { FAIL = FAIL + 1 }
+    println("  [" + mark + "] " + label)
+    if detail.len() > 0 { println("         · " + detail) }
+}
+
+// n=6 + driver params
+let SOPFR = 5.0                       // ms — read-frame budget (τ=4 phases)
+let FRAME_RATE = 200.0                // 1/(sopfr ms)
+let PULSE_MS = 0.010                  // 10 µs write pulse (top of phase 1)
+let L_H = 1.0e-6                      // 1 µH drive-loop inductance
+let R_PAR = 0.05                      // 50 mΩ parasitic lead/driver path
+let V_DRIVE = 1.0e-3                  // 1 mV ideal pulse amplitude
+let DAC_BITS = 12.0                   // 12-bit current DAC
+let V_REF = 4.0e-3                    // DAC full-scale (4 mV ⇒ headroom over 1 mV)
+let LSB = V_REF / 4096.0             // 2^12 = 4096 codes
+
+fn dac_quantize(v: float) -> float {
+    if v <= 0.0 { return 0.0 }
+    // round to nearest code: floor(v/LSB + 0.5)·LSB
+    let codes = v / LSB + 0.5
+    let mut c = 0.0
+    // integer floor via subtraction loop is O(4096) worst case; use trunc trick
+    let ci = int(codes)                 // truncates toward zero (codes ≥ 0)
+    c = (ci + 0.0) * LSB
+    if c > V_REF { return V_REF }
+    return c
+}
+
+fn run_loop(use_dac: bool) -> [float] {
+    // returns [I_peak, E_diss_over_frame, pulse_area_V_ms]
+    let steps = 500000
+    let dt_ms = SOPFR / 500000.0
+    let dt_s = dt_ms / 1000.0
+    let mut i_amp = 0.0
+    let mut t_ms = 0.0
+    let mut k = 0
+    let mut i_peak = 0.0
+    let mut e_diss = 0.0
+    let mut area = 0.0
+    while k < steps {
+        let v_ideal = if t_ms < PULSE_MS { V_DRIVE } else { 0.0 }
+        let v = if use_dac { dac_quantize(v_ideal) } else { v_ideal }
+        area = area + v * dt_ms
+        let di = (v - R_PAR * i_amp) / L_H * dt_s
+        i_amp = i_amp + di
+        if abs_f(i_amp) > i_peak { i_peak = abs_f(i_amp) }
+        e_diss = e_diss + i_amp * i_amp * R_PAR * dt_s
+        t_ms = t_ms + dt_ms
+        k = k + 1
+    }
+    return [i_peak, e_diss, area]
+}
+
+fn main() {
+    println("========================================================================")
+    println("  hexa-aura · firmware/sim — coil-driver DAC chain (§A.6.1 stage C, sim-only)")
+    println("========================================================================")
+    println("")
+
+    // ── 1. DAC resolution adequate for the 1 mV pulse ──
+    let codes_over_pulse = V_DRIVE / LSB
+    _check(codes_over_pulse > 16.0, "DAC resolution: " + str(codes_over_pulse) + " codes span the 1 mV pulse ( > 16, ≥ 4 effective bits )", "LSB = " + str(LSB) + " V, 12-bit, V_ref = 4 mV")
+
+    let ideal = run_loop(false)
+    let dac = run_loop(true)
+    let i_ideal = ideal[0]
+    let i_dac = dac[0]
+    let e_dac = dac[1]
+    let area_ideal = ideal[2]
+    let area_dac = dac[2]
+
+    // ── 2. quantized drive reproduces the ideal pulse current within 5 % ──
+    let i_err = abs_f(i_dac - i_ideal) / i_ideal
+    _check(i_err < 0.05, "quantized DAC drive peak current = " + str(i_dac) + " A within 5 % of ideal " + str(i_ideal) + " A (err " + str(i_err) + ")", "RL loop integrates the quantized codeword")
+
+    // ── 3. pulse-area (∫V dt) fidelity within 1 LSB·pulse-width ──
+    let area_tol = LSB * PULSE_MS
+    _check(abs_f(area_dac - area_ideal) < area_tol + 0.05 * area_ideal, "pulse-area fidelity: |Δ∫V dt| = " + str(abs_f(area_dac - area_ideal)) + " V·ms within budget", "quantization-noise-bounded")
+
+    // ── 4. frame timing: pulse fits phase-1 of the τ=4, 200 Hz frame ──
+    let phase_ms = SOPFR / 4.0
+    let duty = PULSE_MS / SOPFR
+    _check(PULSE_MS < phase_ms, "10 µs write pulse fits inside one τ=4 phase (" + str(phase_ms) + " ms) of the " + str(FRAME_RATE) + " Hz frame", "")
+    _check(duty < 0.01, "drive duty cycle = " + str(duty) + " ( < 1 %, low-power timing )", "")
+
+    // ── 5. parasitic avg power within the ≤ 50 mW driver budget ──
+    let p_avg = e_dac * FRAME_RATE
+    _check(p_avg < 0.050, "DAC-chain avg power = " + str(p_avg) + " W < 50 mW budget (3.6 g clip thermal cap, F-AURA-2c)", "energy/frame × 200 frames/s")
+
+    // ── 6. determinism / no blow-up ──
+    _check(i_dac > 0.0 && i_dac < 1.0, "drive current well-conditioned (mA scale, no integrator blow-up): " + str(i_dac) + " A", "")
+
+    println("")
+    println("========================================================================")
+    let pass_n = RUN - FAIL
+    println("  " + str(pass_n) + "/" + str(RUN) + " coil-driver sim checks passed")
+    if FAIL > 0 { println("__HEXA_AURA_SIM_COIL_DRIVER__ FAIL"); exit(1) }
+    println("  quantized DAC drive reproduces the µs write pulse within budget; firmware-sim prototype consistent.")
+    println("  (Stage C sim-only — F-AURA-2/2c stay OPEN; not the MCU firmware, not a built driver; T4 = §A.6.)")
+    println("__HEXA_AURA_SIM_COIL_DRIVER__ PASS")
+    exit(0)
+}

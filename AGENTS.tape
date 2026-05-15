@@ -72,11 +72,12 @@
   coil/ -> "subdir (1 items)"
   cortex/ -> "subdir (1 items)"
   docs/ -> "documentation (6 items)"
+  firmware/ -> "sim-only firmware models · firmware/sim/ (§A.6.1 stage C; isolated from verify/) (1 subdir)"
   papers/ -> "papers / publications (2 items)"
   safety/ -> "subdir (1 items)"
   state/ -> "runtime state (gitignored typically) (1 items)"
   tests/ -> "test suite (5 items)"
-  verify/ -> "verification scripts (24 items)"
+  verify/ -> "verification scripts (33 .hexa; 19 green-gated + 9 FEM-tier deferred + meta/orchestrator)"
 
 @D g_inherit := "inherits-lattice-policy" :: governance [required]
   rule = "All echoes/LATTICE_POLICY.md rules apply — real-limits-first · lattice-is-tool · verification-anchor-real-limit · no-artificial-ceilings · honesty-obligation-external."

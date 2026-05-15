@@ -52,3 +52,7 @@
 @A commit_495e30f :: coil [d=2026-05-15 ok]
   => "Cycle 3+4 closure-deepening: + verify/numerics_coil_fem.hexa (discretized on-axis Maxwell near-field, central-FD ∂B/∂z → analytic at O(h²); bone-decay + reciprocity) + verify/numerics_coil_fem_parity.hexa (vs exact Biot–Savart loop · TMS figure-8 · SQUID/OPM floor, g3/f1). RT-SC material claim still → hexa-rtsc. T2/T3 depth, NOT closure — F-AURA-2/2a/2b stay OPEN; green-gate deferred (run_all 19 unchanged); sat-1/STOP/100% code-layer 3-tier unchanged."
   |> "verify/numerics_fem_cross_pillar.hexa (coupled chain: RT-SC R=0 ⇒ safety thermal cap closes)"
+
+@A commit_stageC :: coil [d=2026-05-15 ok]
+  <- commit_495e30f
+  => "Cycle 5 §A.6.1 stage C: + firmware/sim/coil_driver_sim.hexa — DAC→RL drive-chain sim (12-bit current DAC, µs write pulse, τ=4/200 Hz frame, ≤50 mW). Prototype of MCU firmware, NOT firmware; sim-only, no hardware-in-the-loop. ISOLATED in firmware/sim/ — not a verify/* script (not in run_all green core / lint / saturation). Firmware-sim layer NOT closure: F-AURA-2/2c stay OPEN; sat-1/STOP/100% code-layer 3-tier unchanged; T4 = §A.6."
