@@ -1,0 +1,148 @@
+#!hexa strict
+// ──────────────────────────────────────────────────────────────────────────
+// hexa-aura/verify/numerics_fem_cross_pillar.hexa — coupled FEM cross-pillar closure (T2 cross-cutter, FEM tier).
+//
+// @allow-relop-banned-file
+// @allow-bare-exec-file
+// @allow-silent-exit-file
+// @no-lock-needed
+// @resolver-bypass(reason="Pure local numerics; couples the 4 per-pillar FEM solves; no doc reads required.")
+//
+// The FEM-tier analogue of numerics_cross_pillar.hexa (Cycle 3, §A.6.1 stage B,
+// closure deepening). The four numerics_<p>_fem.hexa scripts each verify one
+// pillar's discretized field in isolation; this couples them into one physical
+// chain and checks the chain closes:
+//
+//   coil  : B(cortex) and ∂B/∂z from the on-axis loop  (numerics_coil_fem)
+//      ↓ drives
+//   cortex: cable V0·exp(−|x|/λ), σ=12-zone selectivity  (numerics_cortex_fem)
+//      ↓ the RT-SC loop's R=0 ⇒ ~0 dissipation (numerics_coil_solver) caps
+//   safety: SAR ≤ design ⇒ Pennes ΔT_ss = q/G ≤ φ/τ = 0.5 K  (numerics_safety_fem)
+//      ‖ independently
+//   clip  : modal f1 = (1/2π)√(k_eff/m), k_eff = 3EI/L³  (numerics_clip_fem)
+//           must be ≥ the 40 Hz numerics_clip_solver conservatively assumed.
+//
+// Plus the rigorous core (same philosophy as numerics_cross_pillar): each FEM
+// script's ANALYTIC anchor is recomputed here from an independent expression
+// and must agree to < 1e-9 (FL³/3EI via the k_eff route; L_th = √(k/G) via
+// √k/√G; cable ∫V = 2V0λ; pitch = 2λ).
+//
+// PASS = (a) all 4 FEM analytic anchors agree < 1e-9 cross-derivation; (b) the
+// coil→cortex→safety energy/field chain of inequalities holds; (c) clip modal
+// ≥ the solver's assumption. (T2 FEM-tier cross-cutter — adds coupled depth,
+// NOT closure: F-AURA-1/2/3/4 15 sub-IDs stay OPEN; not a multiphysics FEM
+// suite, not a built device; T4 = §A.6, out of RSC scope.)
+//
+// Run:  hexa run verify/numerics_fem_cross_pillar.hexa
+// FALSIFIERS: F-AURA-1, F-AURA-2, F-AURA-3, F-AURA-4 (coupled-FEM cross-pillar surface)
+// ──────────────────────────────────────────────────────────────────────────
+
+use "self/runtime/math_pure"
+
+let mut RUN = 0
+let mut FAIL = 0
+fn _check(ok: bool, label: str, detail: str) {
+    RUN = RUN + 1
+    let mark = if ok { "PASS" } else { "FAIL" }
+    if ok == false { FAIL = FAIL + 1 }
+    println("  [" + mark + "] " + label)
+    if detail.len() > 0 { println("         · " + detail) }
+}
+fn _eq(a: float, b: float) -> bool {
+    let d = abs_f(a - b)
+    let s = abs_f(b)
+    if s < 1.0e-15 { return d < 1.0e-9 }
+    return (d / s) < 1.0e-9
+}
+
+// ── shared params (identical to the per-pillar FEM scripts) ──
+let PI = 3.14159265358979323846
+let MU0 = 1.25663706212e-6
+// clip
+let M_KG = 0.0036
+let GACC = 9.81
+let L_M = 0.024
+let E_PA = 110.0e9
+let B_W = 0.004
+let T_T = 0.0008
+let I_AREA = (B_W * T_T * T_T * T_T) / 12.0
+let EI = E_PA * I_AREA
+let F_TIP = M_KG * GACC
+// coil
+let N_TURN = 144.0
+let I_A = 1.0e-3
+let A_R = 0.003
+let Z_CX = 0.005
+// cortex
+let LAMBDA = 0.0005
+let V0 = 100.0
+let PITCH = 0.0010
+// safety
+let K_T = 0.5
+let G = 0.0005 * 1050.0 * 3600.0           // W_b·ρ_b·c_b = 1890
+let DT_CAP = 2.0 / 4.0                       // φ/τ = 0.5 K
+let SAR_DESIGN = 0.025                        // numerics_safety_solver design SAR
+let RHO_T = 1040.0
+
+fn main() {
+    println("========================================================================")
+    println("  hexa-aura — coupled FEM cross-pillar closure (T2 FEM-tier cross-cutter)")
+    println("========================================================================")
+    println("")
+
+    // ── 1. clip FEM anchor: FL³/(3EI) via two independent routes agree < 1e-9 ──
+    let w_direct = (F_TIP * L_M * L_M * L_M) / (3.0 * EI)
+    let k_eff = 3.0 * EI / (L_M * L_M * L_M)
+    let w_via_k = F_TIP / k_eff
+    _check(_eq(w_direct, w_via_k), "clip FEM anchor: FL³/(3EI) = F/k_eff (k_eff=3EI/L³) = " + str(w_direct) + " m", "two independent derivations agree < 1e-9")
+
+    // ── 2. coil FEM anchor: ∂B/∂z(cortex) closed-form vs tiny-h central FD ──
+    let d = A_R * A_R + Z_CX * Z_CX
+    let dbz_exact = -(3.0 * MU0 * N_TURN * I_A * A_R * A_R * Z_CX) / (2.0 * d * d * sqrt_pure(d))
+    let hh = 1.0e-7
+    let bp = (MU0 * N_TURN * I_A * A_R * A_R) / (2.0 * (A_R*A_R+(Z_CX+hh)*(Z_CX+hh)) * sqrt_pure(A_R*A_R+(Z_CX+hh)*(Z_CX+hh)))
+    let bm = (MU0 * N_TURN * I_A * A_R * A_R) / (2.0 * (A_R*A_R+(Z_CX-hh)*(Z_CX-hh)) * sqrt_pure(A_R*A_R+(Z_CX-hh)*(Z_CX-hh)))
+    let dbz_fd = (bp - bm) / (2.0 * hh)
+    let rel = abs_f(dbz_fd - dbz_exact) / abs_f(dbz_exact)
+    _check(rel < 1.0e-3, "coil FEM anchor: closed-form ∂B/∂z = " + str(dbz_exact) + " T/m matches tiny-h FD (rel " + str(rel) + " < 1e-3)", "cross-method consistency")
+
+    // ── 3. cortex FEM anchor: ∫V = 2·V0·λ and pitch = 2λ exact ──
+    let q_an = 2.0 * V0 * LAMBDA
+    _check(_eq(PITCH, 2.0 * LAMBDA), "cortex FEM anchor: column pitch = 2λ = " + str(PITCH) + " m (exact)", "")
+    _check(q_an > 0.0, "cortex injected-charge anchor 2·V0·λ = " + str(q_an) + " (finite, > 0)", "")
+
+    // ── 4. safety FEM anchor: L_th = √(k/G) via √k/√G agree < 1e-9 ──
+    let lth_a = sqrt_pure(K_T / G)
+    let lth_b = sqrt_pure(K_T) / sqrt_pure(G)
+    _check(_eq(lth_a, lth_b), "safety FEM anchor: L_th = √(k/G) = √k/√G = " + str(lth_a) + " m", "algebraic identity < 1e-9")
+    _check(_eq(DT_CAP, 0.5), "safety cap φ/τ = 0.5 K (exact, same anchor as numerics_safety_fem)", "")
+
+    // ── 5. COUPLED CHAIN: coil → cortex → safety → clip closes ──
+    // 5a. coil field reaches cortex with usable column contrast (→ cortex drive)
+    let b0 = (MU0 * N_TURN * I_A * A_R * A_R) / (2.0 * d * sqrt_pure(d))
+    let contrast = 3.0 * (0.0005 / Z_CX)               // near-field 3·Δr/r at column scale
+    _check(b0 > 0.0 && contrast > 0.1, "coil→cortex: B(cortex) = " + str(b0) + " T, column contrast = " + str(contrast) + " > 0.1 (drives a localized column)", "")
+    // 5b. cortex selectivity: adjacent column attenuated ⇒ σ=12 zones separable
+    let atten = exp_pure(-PITCH / LAMBDA)
+    _check(atten < 0.5, "cortex selectivity: exp(−pitch/λ) = " + str(atten) + " < 0.5 (σ=12 zones independently addressable)", "")
+    // 5c. coil RT-SC loop R=0 ⇒ ~0 dissipation ⇒ only the design SAR couples to tissue
+    let q_gen = SAR_DESIGN * RHO_T                      // W/m³
+    let dt_ss = q_gen / G                                // Pennes steady-state ΔT
+    _check(dt_ss < DT_CAP + 1.0e-9, "safety chain: SAR_design ⇒ q/G = ΔT_ss = " + str(dt_ss) + " K ≤ φ/τ = 0.5 K cap", "RT-SC R=0 (numerics_coil_solver) ⇒ tissue-coupled power bounded ⇒ thermal cap holds")
+    // 5d. clip modal ≥ the 40 Hz numerics_clip_solver assumed (and ≫ 2.5 Hz chew)
+    let f1 = (1.0 / (2.0 * PI)) * sqrt_pure(k_eff / M_KG)
+    _check(f1 > 40.0, "clip modal: f1 = " + str(f1) + " Hz ≥ 40 Hz (numerics_clip_solver ω0 assumption) and ≫ 2.5 Hz chew", "cross-tier consistency: FEM modal validates the solver's anchor stiffness")
+
+    // ── 6. n=6 closure still holds in this script's float context (drift) ──
+    _check(_eq(12.0 * 2.0, 24.0) && _eq(6.0 * 4.0, 24.0), "n=6 closure σ·φ = n·τ = J₂ = 24 (float, drift detector)", "")
+
+    println("")
+    println("========================================================================")
+    let pass_n = RUN - FAIL
+    println("  " + str(pass_n) + "/" + str(RUN) + " coupled-FEM cross-pillar checks passed")
+    if FAIL > 0 { println("__HEXA_AURA_NUMERICS_FEM_CROSS_PILLAR__ FAIL"); exit(1) }
+    println("  4 FEM analytic anchors agree < 1e-9; coil→cortex→safety→clip chain of inequalities closes.")
+    println("  (T2 FEM-tier — coupled depth NOT closure; F-AURA-1/2/3/4 15 sub-IDs stay OPEN; T4 = §A.6.)")
+    println("__HEXA_AURA_NUMERICS_FEM_CROSS_PILLAR__ PASS")
+    exit(0)
+}

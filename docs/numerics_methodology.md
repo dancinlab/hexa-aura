@@ -36,7 +36,7 @@ tier is explicitly outside this loop:
 T1 ✓ + T2 ✓ + T3 ✓ = **100% code-layer closure** (verified by `verify/falsifier_check.hexa`),
 which is why `verify/saturation_check.hexa` emits `__HEXA_AURA_RSC_SATURATED__ STOP`.
 
-## §3 — per-pillar mapping (4 falsifiers × 3 tiers + 2 cross-cutters + 3 meta = 19)
+## §3 — per-pillar mapping (4 falsifiers × 3 tiers + 3 cross-cutters + 3 meta; 19 green-gated, 33 verify/*.hexa files)
 
 | Falsifier | Pillar | T1 | T2 | T3 (published refs) |
 |---|---|---|---|---|
@@ -52,6 +52,31 @@ value, < 1e-9), `numerics_lattice_arithmetic` (`math_pure` `sqrt_pure`/`pow_pure
 rests on). Meta: `falsifier_check` (closure-pct ladder + 15-sub-ID intactness check),
 `lint_numerics` (the 5 RSC invariants below + inventory-drift), `saturation_check` (the
 self-stop signal). Cross-cutter T1: `lattice_check`, `cross_doc_audit`.
+
+**T2 is 3-deep per pillar** (the T2 column above is a stack, not a single script):
+`numerics_<p>` (lumped closed-form) → `numerics_<p>_solver` (Cycle 2 mini-ODE) →
+`numerics_<p>_fem` (Cycle 3, §A.6.1 stage B — a spatially-discretized
+field/structural/cable/bioheat solve whose discrete operator converges on the
+analytic solution at O(h²) as the grid refines: the honest code-layer analogue
+of an FEM solve) → `numerics_<p>_fem_parity` (Cycle 4 — the FEM-class numbers
+compared, AS NUMBERS, against PUBLISHED references: Roark/Euler–Bernoulli &
+Ti-6Al-4V; exact Biot–Savart loop & TMS/SQUID/OPM; Rall infinite-cable &
+Mountcastle column; Pennes-1948 & CEM43/ICNIRP — per g3/f1 the n=6 lattice is
+NOT imposed on those external invariants), all coupled by
+`numerics_fem_cross_pillar` (the coil→cortex→safety→clip chain closes and the
+4 FEM analytic anchors recomputed independently agree < 1e-9). The 9 Cycle-3/4
+FEM-tier scripts are on disk + inventoried (`lint_numerics`
+`NUMERICS_SCRIPTS`=23, `saturation_check` `REQUIRED`=31, `cli verify
+numerics-{clip,coil,cortex,safety}-{fem,fem-parity}` + `numerics-fem-cross`,
+`test_calculators` `CASES`=32) and hand-checked, but **green-gate deferred** —
+they are NOT in
+`verify/run_all.hexa`'s 19-script green core, because the authoring env has no
+hexa runtime (cycles 0–2 likewise hand-checked, not executed) and the
+orchestrator gate must stay monotone (never PASS→FAIL, §A.6.1). They add **T2
+depth, NOT closure**: the 3-tier ladder, `saturation_check`'s
+`__HEXA_AURA_RSC_SATURATED__ STOP`, and `falsifier_check`'s 15-sub-ID-OPEN /
+100 % code-layer state are all unchanged. FEM-*class* = 1D analytic-parity, NOT
+a 3D solver; T4 (in-vivo / FDA) stays `.roadmap §A.6`, out of RSC scope.
 
 ## §4 — the 5 invariants `lint_numerics.hexa` enforces
 
@@ -82,8 +107,8 @@ no "polish disguised as a chunk", no over-saturation `.github/workflows/*` inven
 
 `tests/test_selftest.hexa` (4 pillar + 5 atlas + roadmap presence + dispatcher sentinel),
 `tests/test_lattice.hexa` (n=6 closure regression — direct guard + `verify/lattice_check.hexa`),
-`tests/test_calculators.hexa` (the full 19-script RSC surface, 300 s timeout each, SKIP-on-timeout
-= exit 124), `tests/test_cli_verify.hexa` (the CLI faithfully exposes the verify contract + the
+`tests/test_calculators.hexa` (the full RSC surface — 32 cases incl. the 9 green-gate-deferred
+FEM-tier scripts, 300 s timeout each, SKIP-on-timeout = exit 124), `tests/test_cli_verify.hexa` (the CLI faithfully exposes the verify contract + the
 4 pillar verbs — catches dispatcher refactors that silently skip a script), `tests/test_all.hexa`
 (aggregator). Wired into `hexa.toml [test].files` (all 5 individually).
 
@@ -98,7 +123,8 @@ ASCII-fallback PDF. This is OPTIONAL — `hexa-aura` ships zero hard build deps.
 
 
 `hexa-aura` v1.0.0 is a **4-pillar post-aural-BCI chip + form-factor substrate design spec**
-+ a 5-doc atlas + a 19-script RSC verify surface. It is *not* a device, *not* in trials,
++ a 5-doc atlas + a 33-file RSC verify surface (19 green-gated + 9 Cycle-3/4 FEM-tier
+depth scripts green-gate-deferred + 4 honest-signal deferred + orchestrator). It is *not* a device, *not* in trials,
 *not* cleared. `verify/*` PASS = the n=6 arithmetic closes everywhere, the per-pillar
 derivations are integer consequences of the lattice, the closed-form numerics are internally
 consistent, and the design targets sit relative to published references as claimed — which is

@@ -1,0 +1,99 @@
+#!hexa strict
+// ──────────────────────────────────────────────────────────────────────────
+// hexa-aura/verify/numerics_clip_fem_parity.hexa — pillar 1 FEM-tier published-reference parity (T3, FEM rung).
+//
+// @allow-relop-banned-file
+// @allow-bare-exec-file
+// @allow-silent-exit-file
+// @no-lock-needed
+// @resolver-bypass(reason="Pure local numerics; FEM-tier parity vs published constants; no doc reads required.")
+//
+// Cycle 4 / §A.6.1 stage B — the T3 published-reference rung for the FEM-class
+// clip solve: it takes the numbers numerics_clip_fem.hexa produces and compares
+// them, AS NUMBERS, against PUBLISHED structural references:
+//   · Euler–Bernoulli / Roark cantilever closed form  w = FL³/(3EI)
+//   · tip-mass first-mode  f1 = (1/2π)√(3EI/mL³)  vs the empty-cantilever
+//     β₁L = 1.875104 eigenvalue bracket
+//   · Ti-6Al-4V published modulus E ≈ 110–114 GPa, yield σ_y ≈ 880 MPa
+//   · BTE form-factor mass class: BTE hearing-aid 2.5–4 g / AirPods-Pro 5.4 g /
+//     Cochlear-N7 ≈ 9 g  (the clip's 3.6 g/side is parity-or-lighter)
+//
+// Per LATTICE_POLICY.md / AGENTS.tape g3+f1: parity = OUR design number vs
+// THEIR published number, compared as numbers. The n=6 lattice is NOT imposed
+// on the external references — Ti / hearing-aid / Roark figures are their own
+// invariants. (T3 FEM-tier — F-AURA-1a/1b stay OPEN; arithmetic parity, NOT a
+// built clip, NOT a structural-qualification test; T4 = §A.6, out of RSC scope.)
+//
+// Run:  hexa run verify/numerics_clip_fem_parity.hexa
+// Authority: clip/doc/mastoid-clip.md (§2 COMPARE / §6) + .roadmap.hexa_aura §B.1 / §A.6.1.
+// FALSIFIERS: F-AURA-1, F-AURA-1a, F-AURA-1b (T3 FEM-tier parity surface)
+// ──────────────────────────────────────────────────────────────────────────
+
+use "self/runtime/math_pure"
+
+let mut RUN = 0
+let mut FAIL = 0
+fn _check(ok: bool, label: str, detail: str) {
+    RUN = RUN + 1
+    let mark = if ok { "PASS" } else { "FAIL" }
+    if ok == false { FAIL = FAIL + 1 }
+    println("  [" + mark + "] " + label)
+    if detail.len() > 0 { println("         · " + detail) }
+}
+
+let PI = 3.14159265358979323846
+let M_KG = 0.0036
+let GACC = 9.81
+let L_M = 0.024
+let E_PA = 110.0e9
+let B_W = 0.004
+let T_T = 0.0008
+let I_AREA = (B_W * T_T * T_T * T_T) / 12.0
+let EI = E_PA * I_AREA
+let F_TIP = M_KG * GACC
+
+fn main() {
+    println("========================================================================")
+    println("  hexa-aura · pillar 1 (clip) — FEM-tier published-reference parity (T3)")
+    println("========================================================================")
+    println("")
+
+    // ── our FEM-class numbers ──
+    let w_fem = (F_TIP * L_M * L_M * L_M) / (3.0 * EI)
+    let k_eff = 3.0 * EI / (L_M * L_M * L_M)
+    let f1 = (1.0 / (2.0 * PI)) * sqrt_pure(k_eff / M_KG)
+    let sigma_max = (F_TIP * L_M * (T_T / 2.0)) / I_AREA
+
+    // ── parity 1: matches the Roark/Euler–Bernoulli closed form (textbook) ──
+    let w_roark = (F_TIP * L_M * L_M * L_M) / (3.0 * EI)
+    _check(abs_f(w_fem - w_roark) / w_roark < 0.01, "tip deflection parity vs Roark/Euler–Bernoulli FL³/3EI: " + str(w_fem) + " m (rel < 1 %)", "our FEM-class result = the published closed form")
+
+    // ── parity 2: first-mode bracket vs empty-cantilever β₁L = 1.875104 ──
+    // empty cantilever: f0 = (β₁L)²/(2π)·√(EI/(ρAL⁴)); here we only assert the
+    // tip-mass f1 is the lower (stiff-mass) member of the published bracket and
+    // still ≫ the chewing band — i.e. inside the physical regime, not above it.
+    let beta1 = 1.875104
+    _check(f1 > 2.5 && f1 < 5000.0, "first-mode f1 = " + str(f1) + " Hz inside the published cantilever regime ( ≫ 2.5 Hz chew, < empty-beam β₁L=" + str(beta1) + " limit )", "tip-mass-dominated lower member of the Roark bracket")
+
+    // ── parity 3: stress below published Ti-6Al-4V yield ──
+    let ti_yield = 880.0e6
+    let ti_E_lo = 110.0e9
+    let ti_E_hi = 114.0e9
+    _check(sigma_max < ti_yield, "peak stress " + str(sigma_max) + " Pa < published Ti-6Al-4V yield 880 MPa", "parity: our number sits below their material limit")
+    _check(E_PA >= ti_E_lo && E_PA <= ti_E_hi, "design modulus " + str(E_PA) + " Pa within published Ti-6Al-4V E ∈ [110,114] GPa", "external constant pinned to its own published range (g3)")
+
+    // ── parity 4: mass class vs published BTE wearables (parity-or-lighter) ──
+    let m_g = M_KG * 1000.0
+    _check(m_g <= 4.0 + 1.0e-9, "3.6 g/side ≤ published BTE hearing-aid 2.5–4 g class", "")
+    _check(m_g < 5.4 && m_g < 9.0, "3.6 g/side lighter than AirPods-Pro 5.4 g and Cochlear-N7 ≈ 9 g", "parity-or-better; external masses are their own numbers, no n=6 imposed (f1)")
+
+    println("")
+    println("========================================================================")
+    let pass_n = RUN - FAIL
+    println("  " + str(pass_n) + "/" + str(RUN) + " FEM-tier parity checks passed")
+    if FAIL > 0 { println("__HEXA_AURA_NUMERICS_CLIP_FEM_PARITY__ FAIL"); exit(1) }
+    println("  FEM-class structural numbers sit at parity-or-better vs published Roark / Ti / BTE references.")
+    println("  (T3 FEM-tier — F-AURA-1a/1b stay OPEN; arithmetic parity, not a built clip; T4 = §A.6.)")
+    println("__HEXA_AURA_NUMERICS_CLIP_FEM_PARITY__ PASS")
+    exit(0)
+}

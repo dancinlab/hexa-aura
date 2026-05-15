@@ -1,0 +1,127 @@
+#!hexa strict
+// ──────────────────────────────────────────────────────────────────────────
+// hexa-aura/verify/numerics_clip_fem.hexa — pillar 1 (clip) FEM-class structural solve (T2, 3rd stack).
+//
+// @allow-relop-banned-file
+// @allow-bare-exec-file
+// @allow-silent-exit-file
+// @no-lock-needed
+// @resolver-bypass(reason="Pure local numerics; discretized beam quadrature; no doc reads required.")
+//
+// RSC recipe §7.4 / .roadmap.hexa_aura §A.6.1 stage B — the FEM-class 3rd T2 rung
+// for F-AURA-1: a SPATIALLY-DISCRETIZED Euler–Bernoulli cantilever solve of the
+// clip arm (fixed at the mastoid-tip anchor, σ·n/10 = 3.6 g tip load, L = J₂ =
+// 24 mm), with the canonical FEM verification: the discrete trapezoidal
+// double-integration of curvature M(x)/EI converges to the analytic tip
+// deflection FL³/(3EI) at the expected O(h²) rate as the node grid refines.
+//
+// This is "physical closure deepening": it moves F-AURA-1 from a lumped
+// closed-form / single-DOF ODE (numerics_clip / _solver) to a discretized
+// spatial structural field with a grid-convergence proof — the honest code-layer
+// analogue of an FEM solve. It is FEM-*class* (1D, analytic-parity), NOT a 3D
+// solver and NOT a built clip on a real jaw — F-AURA-1a/1b stay OPEN; T4
+// (bench / cadaver) is §A.6, out of RSC scope.
+//
+// PASS = (a) discrete tip deflection → analytic FL³/(3EI), fine-grid rel-err
+// < 1 %; (b) refinement is monotone and ~O(h²); (c) deflection ≪ a seat-loss
+// bound; (d) peak bending stress ≪ Ti-6Al-4V yield (large safety factor);
+// (e) first-mode frequency ≫ the 2.5 Hz chew band and ≥ the 40 Hz the
+// numerics_clip_solver conservatively assumed (cross-link consistency).
+//
+// Run:  hexa run verify/numerics_clip_fem.hexa
+// Authority: clip/doc/mastoid-clip.md (§4 anchor / §6) + .roadmap.hexa_aura §B.1 / §A.6.1.
+// FALSIFIERS: F-AURA-1, F-AURA-1a, F-AURA-1b (T2 FEM-class structural surface)
+// ──────────────────────────────────────────────────────────────────────────
+
+use "self/runtime/math_pure"
+
+let mut RUN = 0
+let mut FAIL = 0
+fn _check(ok: bool, label: str, detail: str) {
+    RUN = RUN + 1
+    let mark = if ok { "PASS" } else { "FAIL" }
+    if ok == false { FAIL = FAIL + 1 }
+    println("  [" + mark + "] " + label)
+    if detail.len() > 0 { println("         · " + detail) }
+}
+
+// n=6 + beam params
+let PI = 3.14159265358979323846
+let M_KG = 0.0036                       // σ·n/10 = 3.6 g clip mass (tip load)
+let GACC = 9.81                         // m/s²
+let L_M = 0.024                         // J₂ = 24 mm arm length
+let E_PA = 110.0e9                      // Ti-6Al-4V Young's modulus
+let B_W = 0.004                         // 4 mm strip width
+let T_T = 0.0008                        // 0.8 mm strip thickness
+let I_AREA = (B_W * T_T * T_T * T_T) / 12.0   // b·t³/12
+let EI = E_PA * I_AREA
+let F_TIP = M_KG * GACC                  // worst-case tip point load
+let SIG_YIELD = 880.0e6                  // Ti-6Al-4V yield ≈ 880 MPa (reference)
+
+// discrete cantilever tip deflection by trapezoidal double-integration of
+// curvature: M(x) = F·(L − x), φ(x) = M/EI, θ = ∫φ, w = ∫θ ; w(L) → FL³/(3EI).
+fn tip_deflection(n: int) -> float {
+    let h = L_M / (n + 0.0)
+    let mut theta = 0.0
+    let mut w = 0.0
+    let mut prev_phi = (F_TIP * (L_M - 0.0)) / EI
+    let mut prev_theta = 0.0
+    let mut k = 1
+    while k <= n {
+        let x = (k + 0.0) * h
+        let phi = (F_TIP * (L_M - x)) / EI
+        let theta_new = theta + 0.5 * (prev_phi + phi) * h
+        let w_new = w + 0.5 * (prev_theta + theta_new) * h
+        theta = theta_new
+        w = w_new
+        prev_phi = phi
+        prev_theta = theta_new
+        k = k + 1
+    }
+    return w
+}
+
+fn main() {
+    println("========================================================================")
+    println("  hexa-aura · pillar 1 (clip) — FEM-class cantilever solve (T2 3rd stack)")
+    println("========================================================================")
+    println("")
+
+    let w_analytic = (F_TIP * L_M * L_M * L_M) / (3.0 * EI)
+    let w_coarse = tip_deflection(64)
+    let w_fine = tip_deflection(256)               // 4× refinement ⇒ O(h²) ⇒ ~16× less error
+    let e_coarse = abs_f(w_coarse - w_analytic)
+    let e_fine = abs_f(w_fine - w_analytic)
+    let rel_fine = e_fine / w_analytic
+
+    _check(rel_fine < 0.01, "discrete tip deflection → analytic FL³/(3EI): fine-grid rel-err = " + str(rel_fine) + " < 1 %", "w_fem(256) = " + str(w_fine) + " m vs FL³/3EI = " + str(w_analytic) + " m")
+    _check(e_fine < e_coarse, "refinement monotone: e(256) = " + str(e_fine) + " < e(64) = " + str(e_coarse), "trapezoidal double-integration converges")
+    // O(h²): 4× nodes ⇒ error should drop by ≈ 16× (allow a wide band: 4×–64×)
+    let ratio = if e_fine > 1.0e-18 { e_coarse / e_fine } else { 1.0e9 }
+    _check(ratio > 4.0, "convergence order consistent with O(h²): e(64)/e(256) = " + str(ratio) + " ( ≳ 4, ideal ≈ 16 )", "")
+
+    // seat-loss bound: tip must not lever the clip off the mastoid (< 100 μm)
+    _check(w_fine < 100.0e-6, "tip deflection " + str(w_fine) + " m < 100 μm seat-loss bound — clip stays seated", "")
+
+    // peak bending stress at the fixed root: σ = M_max·c/I = F·L·(t/2)/I_area
+    let sigma_max = (F_TIP * L_M * (T_T / 2.0)) / I_AREA
+    let safety = SIG_YIELD / sigma_max
+    _check(sigma_max < SIG_YIELD, "peak bending stress σ = " + str(sigma_max) + " Pa ≪ Ti yield " + str(SIG_YIELD) + " Pa", "safety factor ≈ " + str(safety))
+    _check(safety > 100.0, "structural safety factor ≈ " + str(safety) + " > 100 (mechanically feasible at 3.6 g)", "F-AURA-1b")
+
+    // first-mode frequency from the discrete tip stiffness k = F/w(L) → 3EI/L³
+    let k_eff = F_TIP / w_fine
+    let f1 = (1.0 / (2.0 * PI)) * sqrt_pure(k_eff / M_KG)
+    _check(f1 > 2.5, "first-mode freq f1 = " + str(f1) + " Hz ≫ 2.5 Hz chewing band", "k_eff = " + str(k_eff) + " N/m ≈ 3EI/L³")
+    _check(f1 > 40.0, "f1 ≥ 40 Hz the numerics_clip_solver conservatively assumed (cross-link consistency)", "actual mode even stiffer ⇒ solver bound conservative")
+
+    println("")
+    println("========================================================================")
+    let pass_n = RUN - FAIL
+    println("  " + str(pass_n) + "/" + str(RUN) + " FEM-class checks passed")
+    if FAIL > 0 { println("__HEXA_AURA_NUMERICS_CLIP_FEM__ FAIL"); exit(1) }
+    println("  discretized cantilever converges to FL³/3EI at O(h²); deflection/stress/modal all inside the design envelope.")
+    println("  (T2 FEM-class — F-AURA-1a/1b stay OPEN; 1D analytic-parity, not a 3D solver, not a built clip; T4 = §A.6.)")
+    println("__HEXA_AURA_NUMERICS_CLIP_FEM__ PASS")
+    exit(0)
+}

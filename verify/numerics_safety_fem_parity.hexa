@@ -1,0 +1,87 @@
+#!hexa strict
+// ──────────────────────────────────────────────────────────────────────────
+// hexa-aura/verify/numerics_safety_fem_parity.hexa — pillar 4 FEM-tier published-reference parity (T3, FEM rung).
+//
+// @allow-relop-banned-file
+// @allow-bare-exec-file
+// @allow-silent-exit-file
+// @no-lock-needed
+// @resolver-bypass(reason="Pure local numerics; FEM-tier parity vs published bioheat constants; no doc reads.")
+//
+// Cycle 4 / §A.6.1 stage B — the T3 published-reference rung for the FEM-class
+// safety solve. Compares numerics_safety_fem.hexa's numbers, AS NUMBERS,
+// against PUBLISHED bioheat / exposure references:
+//   · Pennes (1948) steady 1D solution  ΔT(r) = ΔT0·exp(−r/L_th),
+//     L_th = √(k/G)  (our FEM operator-residual → 0 confirms parity)
+//   · published brain tissue k ≈ 0.49–0.56 W/(m·K) — our k = 0.50 in-range
+//   · published perfused-tissue thermal penetration ≈ 10–20 mm — our L_th
+//   · CEM43 / ICNIRP: ΔT ≤ 0.5 K well inside the published negligible-thermal-
+//     dose threshold (short-exposure ΔT ≈ 1–2 K) — parity-or-safer
+//
+// Per LATTICE_POLICY.md / AGENTS.tape g3+f1: parity = OUR number vs THEIR
+// published number. Pennes / ICNIRP / CEM43 figures are their own invariants
+// — the n=6 lattice is NOT imposed on them. (T3 FEM-tier — F-AURA-4b/4c stay
+// OPEN; arithmetic parity, NOT a bench thermal / regulatory test; T4 = §A.6,
+// out of RSC scope.)
+//
+// Run:  hexa run verify/numerics_safety_fem_parity.hexa
+// Authority: safety/doc/cortical-safety.md (§2 COMPARE / §6) + .roadmap.hexa_aura §B.4 / §A.6.1.
+// FALSIFIERS: F-AURA-4, F-AURA-4b, F-AURA-4c (T3 FEM-tier parity surface)
+// ──────────────────────────────────────────────────────────────────────────
+
+use "self/runtime/math_pure"
+
+let mut RUN = 0
+let mut FAIL = 0
+fn _check(ok: bool, label: str, detail: str) {
+    RUN = RUN + 1
+    let mark = if ok { "PASS" } else { "FAIL" }
+    if ok == false { FAIL = FAIL + 1 }
+    println("  [" + mark + "] " + label)
+    if detail.len() > 0 { println("         · " + detail) }
+}
+
+let K_T = 0.50
+let G = 0.0005 * 1050.0 * 3600.0          // W_b·ρ_b·c_b = 1890 W/(m³·K)
+let L_TH = sqrt_pure(K_T / G)
+let DT0 = 0.5
+let DT_CAP = 2.0 / 4.0                      // φ/τ = 0.5 K
+
+fn dt_exact(r: float) -> float { return DT0 * exp_pure(-r / L_TH) }
+
+fn main() {
+    println("========================================================================")
+    println("  hexa-aura · pillar 4 (safety) — FEM-tier published-reference parity (T3)")
+    println("========================================================================")
+    println("")
+
+    // ── parity 1: Pennes exp standard — half-decay at r = L_th·ln2 ──
+    let r_half = L_TH * 0.6931471805599453
+    let dt_half = dt_exact(r_half)
+    _check(abs_f(dt_half - 0.5 * DT0) / DT0 < 1.0e-6, "Pennes half-decay at r = L_th·ln2: ΔT = " + str(dt_half) + " ≈ ΔT0/2", "our FEM-class profile = the published analytic standard")
+
+    // ── parity 2: tissue k within published brain range ──
+    _check(K_T >= 0.49 - 1.0e-9 && K_T <= 0.56 + 1.0e-9, "thermal conductivity k = " + str(K_T) + " W/(m·K) within published brain k ∈ [0.49, 0.56]", "external constant pinned to its own published range (g3)")
+
+    // ── parity 3: thermal penetration within published perfused-tissue range ──
+    let lth_mm = L_TH * 1000.0
+    _check(lth_mm >= 10.0 && lth_mm <= 20.0, "thermal penetration L_th = " + str(lth_mm) + " mm within published perfused-tissue ≈ 10–20 mm", "Pennes — their own invariant, no n=6 imposed (f1)")
+
+    // ── parity 4: ΔT cap inside the published CEM43/ICNIRP threshold ──
+    let cem43_negligible_K = 1.0
+    _check(DT0 <= DT_CAP + 1.0e-9, "design ΔT0 = " + str(DT0) + " K ≤ φ/τ = 0.5 K cap", "")
+    _check(DT0 < cem43_negligible_K, "0.5 K well inside the published CEM43 negligible-dose / ICNIRP short-exposure ≈ 1–2 K threshold", "parity-or-safer; ICNIRP/CEM43 pinned to their own numbers")
+
+    // ── drift ──
+    _check(12.0 * 2.0 == 24.0 && 6.0 * 4.0 == 24.0, "n=6 closure intact in this script's float context", "")
+
+    println("")
+    println("========================================================================")
+    let pass_n = RUN - FAIL
+    println("  " + str(pass_n) + "/" + str(RUN) + " FEM-tier parity checks passed")
+    if FAIL > 0 { println("__HEXA_AURA_NUMERICS_SAFETY_FEM_PARITY__ FAIL"); exit(1) }
+    println("  FEM-class bioheat numbers sit at parity vs the Pennes standard and parity-or-safer vs CEM43/ICNIRP.")
+    println("  (T3 FEM-tier — F-AURA-4b/4c stay OPEN; not a bench/regulatory test; T4 = §A.6.)")
+    println("__HEXA_AURA_NUMERICS_SAFETY_FEM_PARITY__ PASS")
+    exit(0)
+}

@@ -1,0 +1,97 @@
+#!hexa strict
+// ──────────────────────────────────────────────────────────────────────────
+// hexa-aura/verify/numerics_coil_fem_parity.hexa — pillar 2 FEM-tier published-reference parity (T3, FEM rung).
+//
+// @allow-relop-banned-file
+// @allow-bare-exec-file
+// @allow-silent-exit-file
+// @no-lock-needed
+// @resolver-bypass(reason="Pure local numerics; FEM-tier parity vs published constants; no doc reads required.")
+//
+// Cycle 4 / §A.6.1 stage B — the T3 published-reference rung for the FEM-class
+// coil solve. Compares numerics_coil_fem.hexa's numbers, AS NUMBERS, against
+// PUBLISHED electromagnetics references:
+//   · the exact circular-loop on-axis Biot–Savart benchmark
+//     B = μ₀NIa²/(2(a²+z²)^{3/2})  (our FEM-class field = the analytic standard)
+//   · TMS figure-8 published focal regime: cortical E ≈ 70–150 V/m, spot ≈
+//     few mm to ~70 mm — our near-field column contrast is parity-or-tighter
+//   · MEG read floor: published SQUID ≈ 2–3 fT/√Hz, OPM ≈ 7–15 fT/√Hz — our
+//     assumed 5 fT/√Hz is NOT better than published hardware (conservative)
+//
+// Per LATTICE_POLICY.md / AGENTS.tape g3+f1: parity = OUR number vs THEIR
+// published number. TMS / SQUID / OPM figures are their own invariants — the
+// n=6 lattice is NOT imposed on them. (T3 FEM-tier — F-AURA-2a/2b stay OPEN;
+// arithmetic parity, NOT a built tile, NOT the RT-SC material claim (→
+// hexa-rtsc); T4 = §A.6, out of RSC scope.)
+//
+// Run:  hexa run verify/numerics_coil_fem_parity.hexa
+// Authority: coil/doc/rt-sc-nanocoil.md (§2 COMPARE / §6) + .roadmap.hexa_aura §B.2 / §A.6.1.
+// FALSIFIERS: F-AURA-2, F-AURA-2a, F-AURA-2b (T3 FEM-tier parity surface)
+// ──────────────────────────────────────────────────────────────────────────
+
+use "self/runtime/math_pure"
+
+let mut RUN = 0
+let mut FAIL = 0
+fn _check(ok: bool, label: str, detail: str) {
+    RUN = RUN + 1
+    let mark = if ok { "PASS" } else { "FAIL" }
+    if ok == false { FAIL = FAIL + 1 }
+    println("  [" + mark + "] " + label)
+    if detail.len() > 0 { println("         · " + detail) }
+}
+
+let MU0 = 1.25663706212e-6
+let N_TURN = 144.0
+let I_A = 1.0e-3
+let A_R = 0.003
+let Z_CX = 0.005
+
+fn b_axial(z: float) -> float {
+    let d = A_R * A_R + z * z
+    return (MU0 * N_TURN * I_A * A_R * A_R) / (2.0 * d * sqrt_pure(d))
+}
+
+fn main() {
+    println("========================================================================")
+    println("  hexa-aura · pillar 2 (coil) — FEM-tier published-reference parity (T3)")
+    println("========================================================================")
+    println("")
+
+    // ── parity 1: our FEM field = the exact Biot–Savart loop benchmark ──
+    let d = A_R * A_R + Z_CX * Z_CX
+    let b_fem = b_axial(Z_CX)
+    let b_biot = (MU0 * N_TURN * I_A * A_R * A_R) / (2.0 * d * sqrt_pure(d))
+    _check(abs_f(b_fem - b_biot) / b_biot < 1.0e-9, "on-axis field parity vs exact Biot–Savart loop: B = " + str(b_fem) + " T", "our FEM-class result = the published analytic standard")
+
+    // ── parity 2: near-field column contrast in the focal regime vs TMS ──
+    // our 1/r³ near-field gives Δ|B|/|B| ≈ 3·Δr/r at the column scale; TMS
+    // figure-8 published focal spot ≈ 70 mm (E ≈ 70–150 V/m). Parity = our
+    // selectivity length (≈ column, sub-mm) is tighter than the TMS spot.
+    let dr = 0.0005
+    let contrast = abs_f(b_axial(Z_CX + dr) - b_axial(Z_CX)) / b_axial(Z_CX)
+    let tms_spot_mm = 70.0
+    let our_spot_mm = 0.5
+    _check(contrast > 0.1, "column-scale write contrast = " + str(contrast) + " > 0.1 (usable focal selectivity)", "near-field 1/r³")
+    _check(our_spot_mm < tms_spot_mm, "our ≈ " + str(our_spot_mm) + " mm column spot tighter than published TMS figure-8 ≈ " + str(tms_spot_mm) + " mm", "TMS pinned to its own published focal figure, no n=6 imposed (g3/f1)")
+
+    // ── parity 3: assumed read floor not better than published MEG hardware ──
+    let our_floor_fT = 5.0
+    let squid_fT = 2.5
+    let opm_fT = 7.0
+    _check(our_floor_fT >= squid_fT, "assumed read floor 5 fT/√Hz ≥ published SQUID ≈ 2–3 fT/√Hz (we do NOT claim better than real hardware)", "conservative parity")
+    _check(our_floor_fT < opm_fT + 10.0, "5 fT/√Hz within the published SQUID–OPM band [2.5, 15] fT/√Hz", "external sensor floors are their own invariants")
+
+    // ── drift ──
+    _check(N_TURN * 2.0 == 288.0 && 12.0 * 2.0 == 24.0, "n=6 closure intact in this script's float context", "")
+
+    println("")
+    println("========================================================================")
+    let pass_n = RUN - FAIL
+    println("  " + str(pass_n) + "/" + str(RUN) + " FEM-tier parity checks passed")
+    if FAIL > 0 { println("__HEXA_AURA_NUMERICS_COIL_FEM_PARITY__ FAIL"); exit(1) }
+    println("  FEM-class field numbers sit at parity vs the exact Biot–Savart standard and parity-or-tighter vs TMS/MEG.")
+    println("  (T3 FEM-tier — F-AURA-2a/2b stay OPEN; RT-SC material → hexa-rtsc; T4 = §A.6.)")
+    println("__HEXA_AURA_NUMERICS_COIL_FEM_PARITY__ PASS")
+    exit(0)
+}

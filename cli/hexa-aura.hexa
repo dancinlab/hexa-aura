@@ -203,6 +203,15 @@ let VERIFY_SUBS = [
     "numerics-coil-solver",
     "numerics-cortex-solver",
     "numerics-safety-solver",
+    "numerics-clip-fem",
+    "numerics-coil-fem",
+    "numerics-cortex-fem",
+    "numerics-safety-fem",
+    "numerics-clip-fem-parity",
+    "numerics-coil-fem-parity",
+    "numerics-cortex-fem-parity",
+    "numerics-safety-fem-parity",
+    "numerics-fem-cross",
     "numerics-cross",
     "numerics-lattice",
     "falsifier",
@@ -229,6 +238,15 @@ fn _verify_script(sub: str) -> str {
     if sub == "numerics-coil-solver"   { return VERIFY_DIR + "/numerics_coil_solver.hexa" }
     if sub == "numerics-cortex-solver" { return VERIFY_DIR + "/numerics_cortex_solver.hexa" }
     if sub == "numerics-safety-solver" { return VERIFY_DIR + "/numerics_safety_solver.hexa" }
+    if sub == "numerics-clip-fem"      { return VERIFY_DIR + "/numerics_clip_fem.hexa" }
+    if sub == "numerics-coil-fem"      { return VERIFY_DIR + "/numerics_coil_fem.hexa" }
+    if sub == "numerics-cortex-fem"    { return VERIFY_DIR + "/numerics_cortex_fem.hexa" }
+    if sub == "numerics-safety-fem"    { return VERIFY_DIR + "/numerics_safety_fem.hexa" }
+    if sub == "numerics-clip-fem-parity"   { return VERIFY_DIR + "/numerics_clip_fem_parity.hexa" }
+    if sub == "numerics-coil-fem-parity"   { return VERIFY_DIR + "/numerics_coil_fem_parity.hexa" }
+    if sub == "numerics-cortex-fem-parity" { return VERIFY_DIR + "/numerics_cortex_fem_parity.hexa" }
+    if sub == "numerics-safety-fem-parity" { return VERIFY_DIR + "/numerics_safety_fem_parity.hexa" }
+    if sub == "numerics-fem-cross"     { return VERIFY_DIR + "/numerics_fem_cross_pillar.hexa" }
     if sub == "numerics-cross"         { return VERIFY_DIR + "/numerics_cross_pillar.hexa" }
     if sub == "numerics-lattice"       { return VERIFY_DIR + "/numerics_lattice_arithmetic.hexa" }
     if sub == "falsifier"              { return VERIFY_DIR + "/falsifier_check.hexa" }

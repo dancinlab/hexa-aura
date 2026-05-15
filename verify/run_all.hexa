@@ -44,8 +44,29 @@
 //                                            lattice falsification; n=6
 //                                            algebraic closure carried by
 //                                            lattice_check.hexa T1)
+//   - verify/numerics_{clip,coil,cortex,safety}_fem.hexa
+//                                           (Cycle 3 — FEM-class 3rd T2 rung,
+//                                            §A.6.1 stage B: discretized
+//                                            field/structural/cable/bioheat
+//                                            solves with O(h²) analytic-
+//                                            convergence proofs. On disk +
+//                                            inventoried (lint_numerics,
+//                                            saturation_check, cli verbs,
+//                                            test_calculators) + hand-checked,
+//                                            but green-gate DEFERRED: the
+//                                            authoring env has no hexa runtime
+//                                            (cycles 0–2 likewise hand-checked,
+//                                            not executed) — added to the
+//                                            green orchestrator only after a
+//                                            runtime sweep confirms PASS, so
+//                                            this gate stays monotone and
+//                                            never PASS→FAIL per §A.6.1. They
+//                                            add T2 depth, NOT closure: the
+//                                            3-tier ladder + saturation +
+//                                            falsifier_check 15-sub-ID OPEN
+//                                            state are all unchanged.)
 //
-// The 4 excluded scripts stay on disk and are still runnable via
+// The 8 non-green scripts stay on disk and are still runnable via
 // `hexa run verify/<name>.hexa` directly. They are NOT silenced or
 // rewritten — only excluded from the green-orchestrator gate so the
 // bookkeeping-closure sentinel reflects what is actually verified.

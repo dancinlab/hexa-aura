@@ -1,0 +1,88 @@
+#!hexa strict
+// ──────────────────────────────────────────────────────────────────────────
+// hexa-aura/verify/numerics_cortex_fem_parity.hexa — pillar 3 FEM-tier published-reference parity (T3, FEM rung).
+//
+// @allow-relop-banned-file
+// @allow-bare-exec-file
+// @allow-silent-exit-file
+// @no-lock-needed
+// @resolver-bypass(reason="Pure local numerics; FEM-tier parity vs published cable-theory constants; no doc reads.")
+//
+// Cycle 4 / §A.6.1 stage B — the T3 published-reference rung for the FEM-class
+// cortex solve. Compares numerics_cortex_fem.hexa's numbers, AS NUMBERS,
+// against PUBLISHED cable-theory / cortical-anatomy references:
+//   · Rall infinite-cable steady solution  V(x) = V0·exp(−|x|/λ)  (our FEM
+//     operator-residual → 0 confirms parity with this analytic standard)
+//   · published cortical pyramidal electrotonic length λ ≈ 0.5–1.0 mm
+//     (Rall; Stuart & Spruston) — our λ = 0.5 mm at the published low end
+//   · published cortical column pitch ≈ 0.3–0.6 mm macrocolumn (Mountcastle)
+//     — our addressed unit (pitch = 1.0 mm = 2λ) ≥ one resolvable macrocolumn
+//
+// Per LATTICE_POLICY.md / AGENTS.tape g3+f1: parity = OUR number vs THEIR
+// published number. Rall / Mountcastle figures are their own invariants — the
+// n=6 lattice is NOT imposed on them. (T3 FEM-tier — F-AURA-3a/3b/3c stay
+// OPEN; arithmetic parity, NOT a cortical recording, decode → hexa-mind /
+// hexa-brain; T4 = §A.6, out of RSC scope.)
+//
+// Run:  hexa run verify/numerics_cortex_fem_parity.hexa
+// Authority: cortex/doc/cortical-interface.md (§2 COMPARE / §6) + .roadmap.hexa_aura §B.3 / §A.6.1.
+// FALSIFIERS: F-AURA-3, F-AURA-3a, F-AURA-3b, F-AURA-3c (T3 FEM-tier parity surface)
+// ──────────────────────────────────────────────────────────────────────────
+
+use "self/runtime/math_pure"
+
+let mut RUN = 0
+let mut FAIL = 0
+fn _check(ok: bool, label: str, detail: str) {
+    RUN = RUN + 1
+    let mark = if ok { "PASS" } else { "FAIL" }
+    if ok == false { FAIL = FAIL + 1 }
+    println("  [" + mark + "] " + label)
+    if detail.len() > 0 { println("         · " + detail) }
+}
+
+let LAMBDA = 0.0005
+let V0 = 100.0
+let PITCH = 0.0010
+
+fn v_exact(x: float) -> float {
+    let ax = if x < 0.0 { -x } else { x }
+    return V0 * exp_pure(-ax / LAMBDA)
+}
+
+fn main() {
+    println("========================================================================")
+    println("  hexa-aura · pillar 3 (cortex) — FEM-tier published-reference parity (T3)")
+    println("========================================================================")
+    println("")
+
+    // ── parity 1: half-decay length = λ·ln2 matches the Rall exp standard ──
+    let x_half = LAMBDA * 0.6931471805599453      // λ·ln2 ⇒ V = V0/2
+    let v_half = v_exact(x_half)
+    _check(abs_f(v_half - 0.5 * V0) / V0 < 1.0e-6, "Rall cable half-decay at x = λ·ln2: V = " + str(v_half) + " ≈ V0/2", "our FEM-class profile = the published analytic standard exp(−x/λ)")
+
+    // ── parity 2: λ within published cortical electrotonic range ──
+    let lam_mm = LAMBDA * 1000.0
+    _check(lam_mm >= 0.5 - 1.0e-9 && lam_mm <= 1.0 + 1.0e-9, "electrotonic λ = " + str(lam_mm) + " mm within published cortical pyramidal λ ∈ [0.5, 1.0] mm", "Rall / Stuart-Spruston — their own invariant, no n=6 imposed (g3/f1)")
+
+    // ── parity 3: addressed unit ≥ a published macrocolumn ──
+    let pitch_mm = PITCH * 1000.0
+    let macrocol_lo = 0.3
+    let macrocol_hi = 0.6
+    _check(pitch_mm >= macrocol_hi, "addressed pitch = " + str(pitch_mm) + " mm ≥ published macrocolumn ≈ 0.3–0.6 mm (Mountcastle) — resolvable", "")
+    let atten = exp_pure(-PITCH / LAMBDA)
+    _check(atten < 0.5, "adjacent-unit attenuation exp(−pitch/λ) = " + str(atten) + " < 0.5 (separable, consistent with column independence)", "")
+
+    // ── drift ──
+    _check(12.0 * 2.0 == 24.0 && 6.0 * 4.0 == 24.0, "n=6 closure intact in this script's float context", "")
+
+    println("")
+    println("========================================================================")
+    let pass_n = RUN - FAIL
+    println("  " + str(pass_n) + "/" + str(RUN) + " FEM-tier parity checks passed")
+    if FAIL > 0 { println("__HEXA_AURA_NUMERICS_CORTEX_FEM_PARITY__ FAIL"); exit(1) }
+    println("  FEM-class cable numbers sit at parity vs the Rall standard and within published cortical λ / column ranges.")
+    println("  (T3 FEM-tier — F-AURA-3a/3b/3c stay OPEN; decode → hexa-mind/hexa-brain; T4 = §A.6.)")
+    println("__HEXA_AURA_NUMERICS_CORTEX_FEM_PARITY__ PASS")
+    exit(0)
+}

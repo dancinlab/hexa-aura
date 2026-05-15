@@ -1,6 +1,6 @@
 # ✨ hexa-aura — substrate SSOT INDEX
 
-> 4 pillar substrate (clip · coil · cortex · safety) + 5-doc atlas + 19-script RSC verify surface. **n=6 invariant lattice** `σ(6)·φ(6) = n·τ(6) = J₂ = 24`. Sister of `hexa-cern` · `hexa-rtsc` · `hexa-bio` · `hexa-chip` · `hexa-ufo` under `dancinlab/echoes` parent. (2026-05-15)
+> 4 pillar substrate (clip · coil · cortex · safety) + 5-doc atlas + RSC verify surface (33 files · 19 green-gated · 9 Cycle-3/4 FEM-tier deferred). **n=6 invariant lattice** `σ(6)·φ(6) = n·τ(6) = J₂ = 24`. Sister of `hexa-cern` · `hexa-rtsc` · `hexa-bio` · `hexa-chip` · `hexa-ufo` under `dancinlab/echoes` parent. (2026-05-15)
 
 ## 🟢 핵심 9 tape (root, v1.2 architecture-vs-log split)
 
@@ -60,16 +60,19 @@ sopfr(6) = 2 + 3 = 5      μ(6) = 1      λ(6) = 2 (Liouville)
 
 `✦KR` = canon-pre-migration 한국어 풍부본 (TODO §1 복원 검토 대상)
 
-## 🔬 19-script RSC verify surface (T1/T2/T3 ladder + cross-cut + meta)
+## 🔬 RSC verify surface (T1/T2/T3 ladder + cross-cut + meta) — 33 files, 19 green-gated
 
 | 카테고리 | 수 | 스크립트 |
 |--|--|--|
-| **per-pillar** (4 × 4) | 16 | `calc_<p>` · `numerics_<p>` · `numerics_<p>_parity` · `numerics_<p>_solver` for p ∈ {clip, coil, cortex, safety} |
-| **cross-cutter** | 2 | `numerics_cross_pillar` (anchor agreement < 1e-9) · `numerics_lattice_arithmetic` (`math_pure` precision floor) |
-| **meta** | 3 | `falsifier_check` (3-tier ladder + 15 sub-ID intactness) · `lint_numerics` (5 RSC invariants) · `saturation_check` (`__HEXA_AURA_RSC_SATURATED__ STOP`) |
+| **per-pillar** (4 × 6) | 24 | `calc_<p>` · `numerics_<p>` · `numerics_<p>_parity` · `numerics_<p>_solver` · `numerics_<p>_fem` · `numerics_<p>_fem_parity` for p ∈ {clip, coil, cortex, safety} |
+| **cross-cutter** | 3 | `numerics_cross_pillar` (n=6 anchor agreement < 1e-9) · `numerics_fem_cross_pillar` (coupled-FEM chain + 4 FEM analytic anchors < 1e-9) · `numerics_lattice_arithmetic` (`math_pure` precision floor) |
+| **meta** | 3 | `falsifier_check` (3-tier ladder + 15 sub-ID intactness) · `lint_numerics` (5 RSC invariants · NUMERICS_SCRIPTS=23) · `saturation_check` (`__HEXA_AURA_RSC_SATURATED__ STOP` · REQUIRED=31) |
 | **roadmap-wide** | 2 | `lattice_check` (n=6 closure across 4 pillar + 5 atlas) · `cross_doc_audit` (pillar↔pillar anchor agreement) |
+| **orchestrator** | 1 | `run_all` (19-script green-core gate — monotone, never PASS→FAIL) |
 
-진입점: `hexa run cli/hexa-aura.hexa verify [<sub>]`; 전부 묶어서 `verify/run_all.hexa`. 자세한 매핑은 `docs/numerics_methodology.md`.
+**T2/T3 rungs per pillar (deepened)**: `numerics_<p>` (lumped closed-form) → `numerics_<p>_solver` (mini-ODE) → `numerics_<p>_fem` (Cycle 3 — discretized field/structural/cable/bioheat solve, O(h²) analytic-convergence) → `numerics_<p>_fem_parity` (Cycle 4 — FEM-class numbers vs **published** Roark/Biot-Savart/Rall/Pennes + Ti/TMS/SQUID/Mountcastle/ICNIRP refs, g3/f1: parity = our-vs-their numbers, no n=6 imposed externally), coupled by `numerics_fem_cross_pillar`. Stage A paper-design: `clip/doc/benchtop_v0_design.md` (BOM + block diagram + interface table). The 9 Cycle-3/4 FEM-tier scripts are inventoried + hand-checked but **green-gate deferred** (authoring env has no hexa runtime) — they add **depth, NOT closure**: sat-1 / `__HEXA_AURA_RSC_SATURATED__ STOP` / 15-sub-ID OPEN / 100% code-layer 3-tier closure all unchanged. T4 (in-vivo / FDA) still `.roadmap §A.6`, out of scope.
+
+진입점: `hexa run cli/hexa-aura.hexa verify [<sub>]`; green-core 묶음은 `verify/run_all.hexa` (19, monotone never PASS→FAIL). 자세한 매핑은 `docs/numerics_methodology.md`.
 
 ## 🛡️ Governance hierarchy (precedent SSOT)
 
