@@ -85,6 +85,12 @@
   rule = "this pillar = cortical I/O substrate only; decode ML → hexa-mind/hexa-brain; cognitive verbs (dream/telepathy/oracle) → hexa-mind; sensory verbs (ear/speak/empath/olfact) → hexa-senses"
   authority = "README.md §Scope discipline"
 
+@D d_m1_lane := "cortex M1 motor-decode lane" :: decision [d=2026-05-15 active]
+  rule = "cortex keeps the M1 read/write *substrate* lane (bounded by falsifier F-AURA-3d aggregate decode WPM); the decode *model* is deferred to hexa-brain."
+  why = "consistent with the scope-discipline — this pillar owns cortical I/O physics, decode ML → hexa-mind/hexa-brain. Folding the decode model in here would duplicate hexa-brain's working pipeline."
+  resolves = ".roadmap.hexa_aura §A.5 D3"
+  ?> x_hexa_brain
+
 @F f_aura_3a := "a1-cochlear-implant-parity" :: falsifier [active]
   status = "OPEN"
   claim = "A1 auditory injection cannot match cochlear-implant intelligibility (Cochlear Nucleus 22-ch parity)"

@@ -60,3 +60,7 @@
 @A commit_stageD :: coil [d=2026-05-15 ok]
   <- commit_stageC
   => "Cycle 6 §A.6.1 stage D: + firmware/hdl/coil_timing_controller.hexa — τ=4/200 Hz read-frame FSM + µs write-pulse slot + register map. HEXA-NATIVE (overrides the §A.6.1 Verilog plan per AGENTS.tape g2 hexa-first; 0 .v). COMPILE-ONLY structural skeleton, emits DEFERRED token (NOT __ PASS), NOT synthesised/flashed, NOT a sim. ISOLATED in firmware/hdl/. Deferred until board (§A.6 step 4, T4). NOT closure: F-AURA-2 stays OPEN; sat-1/STOP/falsifier_check unchanged."
+
+@D d_rtsc_xlink :: coil [d=2026-05-15 active]
+  <- commit_stageD
+  => "§A.5 D2 RESOLVED: hexa-rtsc cross-link = single selftest cross-check (loose), NOT full numeric import — a full import would couple hexa-aura's green gate to another repo's runtime (violates never-PASS→FAIL / monotone). RT-SC material claim stays deferred to hexa-rtsc; F-AURA-2 DEMOTE-on-rtsc-falsify contract unchanged. Architecture recorded as @D d_rtsc_xlink in COIL.tape."

@@ -84,6 +84,12 @@
   rule = "φ=2 directions per channel — pick-up loop (read, MEG-class fT) + drive loop (write, TMS-class focal E-field); time-shared τ=4 phases"
   authority = ".roadmap.hexa_aura §A.1"
 
+@D d_rtsc_xlink := "hexa-rtsc cross-link strength" :: decision [d=2026-05-15 active]
+  rule = "coil ↔ hexa-rtsc coupling is a single `selftest` cross-check (loose), NOT a full numeric import."
+  why = "a full import would make hexa-aura's green gate depend on another repo's runtime — violates the never-PASS→FAIL / monotone invariant (§A.6.1) and the green-core isolation discipline. RT-SC material claim stays deferred to hexa-rtsc (if it falsifies, F-AURA-2 is DEMOTED)."
+  resolves = ".roadmap.hexa_aura §A.5 D2"
+  ?> x_hexa_rtsc
+
 @F f_aura_2a := "rtsc-tile-focal-gradient" :: falsifier [active]
   status = "OPEN"
   claim = "μ=1 μm pitch RT-SC tile cannot reach ∂B/∂x focal gradient TMS-class cortical write needs"

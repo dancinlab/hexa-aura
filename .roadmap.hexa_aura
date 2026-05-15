@@ -177,11 +177,31 @@ pct per falsifier across the 3-tier ladder). Detail tables in §B.
 
 ## §A.5 Pending decisions
 
-- Pillar `.hexa` CLI dispatch order (clip → coil → cortex → safety vs read/write split).
-- `hexa-rtsc` cross-link strength (coil pillar depends on RT-SC critical-current claims — vendor a single `selftest` cross-check or full numeric import?).
+### Resolved (2026-05-15, status-quo-consistent — recorded as `@D` in the SSOT)
+
+- **D1 — pillar CLI dispatch order** → **DECIDED: `clip → coil → cortex → safety`**
+  (= pillar numbering 1–4 = falsifier F-AURA-1..4). Already implemented in
+  `cli/hexa-aura.hexa` `VERIFY_SUBS` / `_verify_script()`; the read/write-split
+  alternative is rejected (would scatter a pillar's tier ladder across two
+  groups, breaking the `falsifier_check` per-pillar mapping). Zero-risk;
+  recorded `@D d_cli_dispatch` in `AGENTS.tape`.
+- **D2 — `hexa-rtsc` cross-link strength** → **DECIDED: single `selftest`
+  cross-check (loose coupling), NOT full numeric import.** A full import would
+  make hexa-aura's green gate depend on another repo's runtime, violating the
+  "never PASS→FAIL / monotone" invariant (§A.6.1) and the green-core isolation
+  discipline. The coil pillar keeps the RT-SC material claim *deferred* to
+  `hexa-rtsc` (README scope-discipline: "if `hexa-rtsc` is falsified, F-AURA-2
+  is DEMOTED"). Recorded `@D d_rtsc_xlink` in `COIL.tape`.
+- **D3 — cortex M1 motor-decode lane** → **DECIDED: cortex keeps the M1
+  read/write *substrate* lane (covered by falsifier F-AURA-3d aggregate decode
+  WPM); the decode *model* is deferred to `hexa-brain`.** Consistent with the
+  existing scope-discipline (substrate here, decode ML → `hexa-mind` /
+  `hexa-brain`). Recorded `@D d_m1_lane` in `CORTEX.tape`.
+
+### Pending (owner / external — not autonomously decidable)
+
 - `hexa-mind` / `hexa-senses` standalone split timing (TODO.md §2 — owner-pending).
 - Canon-side restoration of the 2 ✦ KR historical docs (TODO.md §1 — Option A/B/C, owner-pending).
-- Whether `cortex` pillar should fold in the M1 motor-decode lane or defer it entirely to `hexa-brain`.
 - §A.6 Step-1 external-collab candidate (academic neuro-eng lab) selection timing.
 
 ---

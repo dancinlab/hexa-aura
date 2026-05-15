@@ -110,6 +110,12 @@
   @> AGENTS.md
 
 
+@D d_cli_dispatch := "pillar CLI dispatch order" :: decision [d=2026-05-15 active]
+  rule = "verify/CLI pillar order is clip → coil → cortex → safety (= pillar 1–4 = falsifier F-AURA-1..4). The read/write-split alternative is rejected."
+  why = "keeps each pillar's T1/T2/T3 tier ladder contiguous so falsifier_check's per-pillar mapping stays 1:1; already implemented in cli/hexa-aura.hexa VERIFY_SUBS/_verify_script()."
+  resolves = ".roadmap.hexa_aura §A.5 D1"
+  @> AGENTS.md
+
 @F f1 := "lattice-fit-on-external-entity" :: governance [required deny:write]
   pattern = "applying n=6 lattice as derivation rule to TSMC · ASML · IPCC · NASA · SpaceX · CERN · DeepMind · NIST · or any external vendor"
   exception = "values may coincidentally match — observation OK, derivation NOT OK"
