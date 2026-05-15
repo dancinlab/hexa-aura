@@ -62,7 +62,10 @@
   t1_calc -> "verify/calc_cortex.hexa"
   t2_numerics -> "verify/numerics_cortex.hexa"
   t2_solver -> "verify/numerics_cortex_solver.hexa (LIF neuron τ_m·dV/dt = −(V − V_rest) + R_m·I_inj)"
+  t2_fem -> "verify/numerics_cortex_fem.hexa (Cycle 3 — discretized linear-cable operator residual on V0·exp(−|x|/λ) → 0 at O(h²); green-gate deferred)"
   t3_parity -> "verify/numerics_cortex_parity.hexa (cochlear-implant 22-ch · Argus-II/Orion 60 · Flesher-2016 ICMS · BrainGate-handwriting · speech-BCI 62-78 WPM)"
+  t3_fem_parity -> "verify/numerics_cortex_fem_parity.hexa (Cycle 4 — vs Rall infinite-cable · cortical λ∈[0.5,1.0]mm · Mountcastle macrocolumn; g3/f1 parity; green-gate deferred)"
+  fem_cross -> "verify/numerics_fem_cross_pillar.hexa (coupled-FEM cross-cutter — coil B(cortex) drives localized column; shared)"
   cli -> "cli/hexa-aura.hexa cortex"
 
 @D d_zones := "sigma-12-cortical-zones" :: cortex [required active]

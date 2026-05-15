@@ -48,3 +48,7 @@
   version = "1.2"
 
 # §Log — entries chronological, oldest first.
+
+@A commit_495e30f :: coil [d=2026-05-15 ok]
+  => "Cycle 3+4 closure-deepening: + verify/numerics_coil_fem.hexa (discretized on-axis Maxwell near-field, central-FD ∂B/∂z → analytic at O(h²); bone-decay + reciprocity) + verify/numerics_coil_fem_parity.hexa (vs exact Biot–Savart loop · TMS figure-8 · SQUID/OPM floor, g3/f1). RT-SC material claim still → hexa-rtsc. T2/T3 depth, NOT closure — F-AURA-2/2a/2b stay OPEN; green-gate deferred (run_all 19 unchanged); sat-1/STOP/100% code-layer 3-tier unchanged."
+  |> "verify/numerics_fem_cross_pillar.hexa (coupled chain: RT-SC R=0 ⇒ safety thermal cap closes)"

@@ -61,7 +61,10 @@
   t1_calc -> "verify/calc_safety.hexa"
   t2_numerics -> "verify/numerics_safety.hexa"
   t2_solver -> "verify/numerics_safety_solver.hexa (Pennes bioheat ρc·dT/dt = q_gen − w_b·ρ_b·c_b·(T − T_a))"
+  t2_fem -> "verify/numerics_safety_fem.hexa (Cycle 3 — discretized 1D Pennes operator residual on ΔT0·exp(−r/L_th) → 0 at O(h²); green-gate deferred)"
   t3_parity -> "verify/numerics_safety_parity.hexa (ICNIRP-2020 · IEEE-C95.1-2019 · Shannon-1992 · McCreery · CEM43 · Rossi-2009 · ASTM-F2503 · IEC-60601)"
+  t3_fem_parity -> "verify/numerics_safety_fem_parity.hexa (Cycle 4 — vs Pennes-1948 · brain k · perfused-tissue L_th · CEM43/ICNIRP; g3/f1 parity; green-gate deferred)"
+  fem_cross -> "verify/numerics_fem_cross_pillar.hexa (coupled-FEM cross-cutter — SAR_design ⇒ Pennes ΔT_ss ≤ φ/τ=0.5 K; shared)"
   cli -> "cli/hexa-aura.hexa safety"
 
 @D d_shannon := "shannon-k-le-1.5" :: safety [required active]

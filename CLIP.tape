@@ -61,7 +61,11 @@
   t1_calc -> "verify/calc_clip.hexa"
   t2_numerics -> "verify/numerics_clip.hexa"
   t2_solver -> "verify/numerics_clip_solver.hexa (damped torsional oscillator I·θ'' + b·θ' + κ·θ = M_jaw)"
+  t2_fem -> "verify/numerics_clip_fem.hexa (Cycle 3 — discretized Euler–Bernoulli cantilever → FL³/3EI at O(h²); green-gate deferred)"
   t3_parity -> "verify/numerics_clip_parity.hexa (BTE hearing-aid · Shokz · AirPods · Cochlear-N7 · Google-Glass)"
+  t3_fem_parity -> "verify/numerics_clip_fem_parity.hexa (Cycle 4 — vs Roark/Euler–Bernoulli · Ti-6Al-4V · BTE mass class; g3/f1 parity; green-gate deferred)"
+  fem_cross -> "verify/numerics_fem_cross_pillar.hexa (coupled-FEM cross-cutter — clip modal ≥ solver assumption; shared)"
+  benchtop -> "clip/doc/benchtop_v0_design.md (Cycle 4 — §A.6.1 stage A paper design: BOM + block diagram + interface table)"
   cli -> "cli/hexa-aura.hexa clip"
 
 @D d_mass := "3.6-g-per-side" :: clip [required active]

@@ -62,7 +62,10 @@
   t1_calc -> "verify/calc_coil.hexa"
   t2_numerics -> "verify/numerics_coil.hexa"
   t2_solver -> "verify/numerics_coil_solver.hexa (RL ODE L·dI/dt = V − R·I, persistent-current limit)"
+  t2_fem -> "verify/numerics_coil_fem.hexa (Cycle 3 — discretized on-axis Maxwell near-field, central-FD ∂B/∂z → analytic at O(h²); green-gate deferred)"
   t3_parity -> "verify/numerics_coil_parity.hexa (Neuralink-N1 1024 · Utah 96 · Stentrode 16 · SQUID-MEG · OPM-MEG · TMS figure-8)"
+  t3_fem_parity -> "verify/numerics_coil_fem_parity.hexa (Cycle 4 — vs exact Biot–Savart loop · TMS figure-8 · SQUID/OPM floor; g3/f1 parity; green-gate deferred)"
+  fem_cross -> "verify/numerics_fem_cross_pillar.hexa (coupled-FEM cross-cutter — RT-SC R=0 ⇒ safety thermal cap closes; shared)"
   cli -> "cli/hexa-aura.hexa coil"
 
 @D d_pitch := "mu-1um-litho-pitch" :: coil [required active]
