@@ -2,17 +2,18 @@
 
 > 4 pillar substrate (clip · coil · cortex · safety) + 5-doc atlas + RSC verify surface (33 files · 19 green-gated · 9 Cycle-3/4 FEM-tier deferred). **n=6 invariant lattice** `σ(6)·φ(6) = n·τ(6) = J₂ = 24`. Sister of `hexa-cern` · `hexa-rtsc` · `hexa-bio` · `hexa-chip` · `hexa-ufo` under `dancinlab/echoes` parent. (2026-05-15)
 
-## 🟢 핵심 9 tape (root, v1.2 architecture-vs-log split)
+## 🟢 핵심 10 tape (root, v1.2 architecture-vs-log split)
 
 | Tape | 한 줄 설명 |
 |------|-----------|
-| 🛡️ **AGENTS.tape** | governance SSOT — `g_inherit/g1/g2/g3/g4/g_arch_vs_log_split` · `f1` 외부엔티티 격자-fit 금지 · `CLAUDE.md` symlink |
+| 🛡️ **AGENTS.tape** | governance SSOT — `g_inherit/g1/g2/g3/g4/g_arch_vs_log_split` · `d_cli_dispatch` · `f1` 외부엔티티 격자-fit 금지 · `CLAUDE.md` symlink |
 | 📥 **IMPORTED_FROM_CANON.tape** | canon@a86ca143 에서 이동된 5-doc atlas 출처 추적 (+ `.md` sibling) |
 | 📝 **TODO.tape** | 잔여 작업 + v1.1.0+ 로드맵 (+ `.md` sibling) |
 | 🧷 **CLIP.tape** + **CLIP.log.tape** | pillar 1/4 — HEXA-MASTOID-CLIP form-factor (F-AURA-1, 3 sub-ID) |
-| 🌀 **COIL.tape** + **COIL.log.tape** | pillar 2/4 — HEXA-RT-SC-NANOCOIL transducer (F-AURA-2, 3 sub-ID) · hexa-rtsc 의존 |
-| 🧠 **CORTEX.tape** + **CORTEX.log.tape** | pillar 3/4 — HEXA-CORTICAL-IF direct I/O (F-AURA-3, 4 sub-ID) · hexa-brain 교차검증 |
+| 🌀 **COIL.tape** + **COIL.log.tape** | pillar 2/4 — HEXA-RT-SC-NANOCOIL transducer (F-AURA-2, 3 sub-ID) · `d_rtsc_xlink` (loose) · hexa-rtsc 의존 |
+| 🧠 **CORTEX.tape** + **CORTEX.log.tape** | pillar 3/4 — HEXA-CORTICAL-IF direct I/O (F-AURA-3, 4 sub-ID) · `d_m1_lane` (decode→hexa-brain) |
 | 🛡️ **SAFETY.tape** + **SAFETY.log.tape** | pillar 4/4 — HEXA-CORTICAL-SAFETY cap (F-AURA-4, 5 sub-ID) |
+| 🛠️ **BENCHTOP.tape** + **BENCHTOP.log.tape** | §A.6 Stage-1+ 하드웨어 경로 SSOT — stage A–D 상태 · 하드웨어-의존→falsifier 맵 · 외부 게이트 (T4, RSC 밖; tracking only) |
 
 ## 🧭 4 pillar split — substrate domain decomposition
 
@@ -79,6 +80,8 @@ sopfr(6) = 2 + 3 = 5      μ(6) = 1      λ(6) = 2 (Liouville)
 - **stage D — `firmware/hdl/` + `firmware/mcu/`** (Cycle 6, 컴파일-only 스켈레톤): `coil_timing_controller.hexa` (τ=4/200 Hz FSM + µs slot) · `watchdog_mcu.hexa` (init→sample→eval→trip FSM, λ=2, IRQ/reg map). §A.6.1의 Verilog/Rust 계획을 `g2` hexa-first로 오버라이드 → **0 .v / 0 .rs / 0 .py**. `__ DEFERRED` 토큰(NOT `__ PASS`), 합성/플래시 안 함, **보드 도착까지 deferred** (§A.6 step 4, T4).
 
 전부 lint/saturation/run_all/test 인벤토리 **미포함**, F-AURA sub-ID OPEN·sat-1·STOP·falsifier_check 불변 (closure 아닌 layer).
+
+> stage A–D 전체 상태 + 하드웨어-의존→falsifier 맵 + 외부 게이트(collab/펀딩/FDA)의 구조화 SSOT는 **`BENCHTOP.tape`** (T4 tracking ledger; §A.6, RSC 밖). 가장 깊은 의존 = `hexa-rtsc` (상온초전도체 실재 여부 = 미해결 연구문제).
 
 ## 🛡️ Governance hierarchy (precedent SSOT)
 
